@@ -48,7 +48,7 @@ function App() {
             delay={1000}
             onError={handleError}
             onScan={handleScan}
-            // chooseDeviceId={()=>selected}
+            chooseDeviceId={() => selected}
             style={{ width: "300px" }}
           />
         </>
