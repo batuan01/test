@@ -8,8 +8,8 @@ import QR from "./qr";
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
-    {/* <App /> */}
-    <QR />
+    <App />
+    {/* <QR /> */}
   </React.StrictMode>
 );
 

@@ -1,63 +1,59 @@
-import { useState } from "react";
-import { QrReader } from "react-qr-reader";
+import React, { useEffect, useState } from "react";
+import { Html5QrcodeScanner } from "html5-qrcode";
 
 function App() {
-  const [selected, setSelected] = useState("environment");
-  const [startScan, setStartScan] = useState(false);
-  const [loadingScan, setLoadingScan] = useState(false);
-  const [data, setData] = useState("");
+  const [scanResult, setScanResult] = useState(null);
+  const [manualSerialNumber, setManualSerialNumber] = useState("");
 
-  const handleScan = async (scanData) => {
-    setLoadingScan(true);
-    console.log(`loaded data data`, scanData);
-    if (scanData && scanData !== "") {
-      console.log(`loaded >>>`, scanData);
-      setData(scanData);
-      setStartScan(false);
-      setLoadingScan(false);
-      // setPrecScan(scanData);
+  useEffect(() => {
+    const scanner = new Html5QrcodeScanner("reader", {
+      qrbox: {
+        width: 250,
+        height: 250,
+      },
+      fps: 5,
+    });
+
+    let isScanning = true;
+
+    scanner.render(success, error);
+
+    function success(result) {
+      if (isScanning) {
+        scanner.clear();
+        setScanResult(result);
+        isScanning = false; // Set isScanning to false to stop further scanning
+      }
     }
-  };
-  const handleError = (err) => {
-    console.error(err);
-  };
+
+    function error(err) {
+      console.warn(err);
+    }
+  }, []);
+
   return (
     <div className="App">
-      <h1>Hello CodeSandbox</h1>
-      <h2>
-        Last Scan:
-        {selected}
-      </h2>
-      {/* <input type="file" accept="image/*;" capture="camera" /> */}
-      <button
-        onClick={() => {
-          setStartScan(!startScan);
-        }}
-      >
-        {startScan ? "Stop Scan" : "Start Scan"}
-      </button>
-
-      {startScan && (
-        <>
-          <select onChange={(e) => setSelected(e.target.value)}>
-            <option value={"environment"}>Back Camera</option>
-            <option value={"user"}>Front Camera</option>
-          </select>
-          <QrReader
-            delay={1000}
-            onError={handleError}
-            onScan={handleScan}
-            chooseDeviceId={() => selected}
-            style={{ width: "300px" }}
-            constraints={{
-              audio: true,
-              video: { facingMode: "environment" },
-            }}
-          />
-        </>
+      <h1>QR Scanning Code</h1>
+      {scanResult ? (
+        <div>
+          <p>
+            Success: <a href={scanResult}>{scanResult}</a>
+          </p>
+          <p>Serial Number: {scanResult.slice(-16)}</p>
+        </div>
+      ) : (
+        <div>
+          <div id="reader"></div>
+          <p className="center-text">Or enter the serial number manually:</p>
+          {scanResult ? (
+            <>
+              Success: <a href={"http://" + scanResult}>{scanResult}</a>
+            </>
+          ) : (
+            <div id="reader"></div>
+          )}
+        </div>
       )}
-      {loadingScan && <p>Loading</p>}
-      {data !== "" && <p>{data}</p>}
     </div>
   );
 }
