@@ -44,12 +44,15 @@ function App() {
             <option value={"user"}>Front Camera</option>
           </select>
           <QrReader
-            facingMode={selected}
             delay={1000}
             onError={handleError}
             onScan={handleScan}
             chooseDeviceId={() => selected}
             style={{ width: "300px" }}
+            constraints={{
+              audio: true,
+              video: { facingMode: "environment" },
+            }}
           />
         </>
       )}
