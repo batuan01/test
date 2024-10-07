@@ -51,7 +51,7 @@ function App() {
             style={{ width: "300px" }}
             constraints={{
               audio: true,
-              video: { facingMode: selected },
+              video: { facingMode: "environment" },
             }}
           />
         </>
