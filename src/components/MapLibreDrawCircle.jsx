@@ -3,6 +3,7 @@ import maplibregl from "maplibre-gl";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import * as turf from "@turf/turf";
 import { saveAs } from "file-saver";
+import { createMap } from "../core/actions/map";
 
 export default function MapLibreDrawCircle() {
   const mapContainer = useRef(null);
@@ -12,17 +13,8 @@ export default function MapLibreDrawCircle() {
   const [area, setArea] = useState(null);
 
   useEffect(() => {
-    const map = new maplibregl.Map({
-      container: mapContainer.current,
-      style:
-        "https://api.maptiler.com/maps/fefc1891-4e0d-4102-a51f-09768f839b85/style.json?key=S1qTEATai9KydkenOF6W",
-      center: [105.843272, 21.005671],
-      zoom: 16,
-      pitchWithRotate: false, // Không cho xoay bằng chuột phải + kéo
-      dragRotate: false, // Không cho xoay bằng chuột
-      touchPitch: false, // Không cho xoay bằng 2 ngón tay
-      pitch: 0, // Góc nghiêng = 0 (2D)
-      bearing: 0, // Không xoay hướng bản đồ
+    const map = createMap({
+      mapContainer: mapContainer.current,
     });
 
     // Fix className conflict between mapbox-draw & maplibre
@@ -50,7 +42,7 @@ export default function MapLibreDrawCircle() {
             ["!=", "mode", "static"],
           ],
           paint: {
-            "line-color": "#ff0000",
+            "line-color": "#0099FF",
             "line-width": 2,
           },
         },
@@ -59,7 +51,7 @@ export default function MapLibreDrawCircle() {
           type: "fill",
           filter: ["all", ["==", "$type", "Polygon"], ["!=", "mode", "static"]],
           paint: {
-            "fill-color": "#ff0000",
+            "fill-color": "#0099FF",
             "fill-opacity": 0.4,
           },
         },
@@ -68,7 +60,7 @@ export default function MapLibreDrawCircle() {
           type: "line",
           filter: ["all", ["==", "$type", "Polygon"], ["!=", "mode", "static"]],
           paint: {
-            "line-color": "#ff0000",
+            "line-color": "#0099FF",
             "line-width": 2,
           },
         },
@@ -103,6 +95,15 @@ export default function MapLibreDrawCircle() {
             "line-width": 3,
           },
         },
+        {
+          id: "gl-draw-polygon-vertex",
+          type: "circle",
+          filter: ["all", ["==", "$type", "Point"], ["==", "meta", "vertex"]],
+          paint: {
+            "circle-radius": 5,
+            "circle-color": "#ff5722", // màu cam nổi bật
+          },
+        },
       ],
     });
 
@@ -120,6 +121,101 @@ export default function MapLibreDrawCircle() {
       draw.add(circle);
 
       isDrawingCircleRef.current = false;
+    });
+
+    // map.on("click", (e) => {
+    //   const allFeatures = draw.getAll();
+    //   const clickPoint = turf.point([e.lngLat.lng, e.lngLat.lat]);
+
+    //   const clickedPolygon = allFeatures.features.find(
+    //     (feature) =>
+    //       feature.geometry.type === "Polygon" &&
+    //       turf.booleanPointInPolygon(clickPoint, feature)
+    //   );
+
+    //   if (!clickedPolygon) {
+    //     console.log("❌ Không click vào polygon nào");
+    //     return;
+    //   }
+
+    //   console.log("✅ Click vào polygon", clickedPolygon);
+
+    //   // Tạo bounding box quanh polygon
+    //   const bbox = turf.bbox(clickedPolygon);
+    //   const bboxPolygon = turf.bboxPolygon(bbox);
+    //   bboxPolygon.properties = { type: "bbox" };
+
+    //   // Xoá bbox cũ nếu có
+    //   const currentFeatures = draw.getAll().features;
+    //   const oldBox = currentFeatures.find((f) => f.properties?.type === "bbox");
+    //   if (oldBox) draw.delete(oldBox.id);
+
+    //   // Thêm bbox mới
+    //   draw.add(bboxPolygon);
+    // });
+
+    // Tạo source và layer để hiển thị bbox khi hover (chỉ cần chạy một lần sau khi map load)
+    map.on("load", () => {
+      if (!map.getSource("bbox-hover")) {
+        map.addSource("bbox-hover", {
+          type: "geojson",
+          data: {
+            type: "FeatureCollection",
+            features: [],
+          },
+        });
+      }
+
+      if (!map.getLayer("bbox-hover-line")) {
+        map.addLayer({
+          id: "bbox-hover-line",
+          type: "line",
+          source: "bbox-hover",
+          layout: {},
+          paint: {
+            "line-color": "#0099FF",
+            "line-width": 2,
+          },
+        });
+      }
+    });
+
+    map.on("mousemove", (e) => {
+      const drawMode = draw.getMode();
+      if (drawMode !== "simple_select") return;
+
+      const allFeatures = draw.getAll();
+      const movePoint = turf.point([e.lngLat.lng, e.lngLat.lat]);
+
+      const hoveredPolygon = allFeatures.features.find(
+        (feature) =>
+          feature.geometry.type === "Polygon" &&
+          turf.booleanPointInPolygon(movePoint, feature)
+      );
+
+      if (!hoveredPolygon || hoveredPolygon.geometry.type !== "Polygon") {
+        const source = map.getSource("bbox-hover");
+
+        if (source) {
+          source.setData({
+            type: "FeatureCollection",
+            features: [],
+          });
+        }
+        return;
+      }
+
+      const bbox = turf.bbox(hoveredPolygon);
+      const bboxPolygon = turf.bboxPolygon(bbox);
+      bboxPolygon.properties = { type: "hover-bbox" };
+
+      const source = map.getSource("bbox-hover");
+      if (source) {
+        source.setData({
+          type: "FeatureCollection",
+          features: [bboxPolygon],
+        });
+      }
     });
 
     mapRef.current = map;
@@ -154,6 +250,27 @@ export default function MapLibreDrawCircle() {
   const handleStartDrawCircle = () => {
     isDrawingCircleRef.current = true;
   };
+
+  function handlePolygonClick(e) {
+    const feature = e.features?.[0];
+    console.log("feature", e);
+    if (!feature || feature.geometry.type !== "Polygon") return;
+
+    const bbox = turf.bbox(feature); // [minX, minY, maxX, maxY]
+    const bboxPolygon = turf.bboxPolygon(bbox);
+    bboxPolygon.properties = { type: "bbox" }; // để trigger style
+
+    const draw = drawRef.current;
+    if (!draw) return;
+
+    // Xóa bbox cũ (nếu có)
+    const existing = draw
+      .getAll()
+      .features.find((f) => f.properties?.type === "bbox");
+    if (existing) draw.delete(existing.id);
+
+    draw.add(bboxPolygon);
+  }
 
   return (
     <div style={{ position: "relative", height: "100vh" }}>
