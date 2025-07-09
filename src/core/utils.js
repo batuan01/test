@@ -19,6 +19,36 @@ export const newDataToLocalStorage = (feature) => {
   });
 };
 
+export const removeFeatureFromLocalStorage = (idToRemove) => {
+  const geojson = loadFromLocalStorage();
+  if (!geojson || !geojson.features) return;
+
+  const updatedFeatures = geojson.features.filter(
+    (feature) => feature.id !== idToRemove
+  );
+
+  saveToLocalStorage({
+    ...geojson,
+    features: updatedFeatures,
+  });
+};
+
+export const updateFeatureInLocalStorage = (updatedFeature) => {
+  if (!updatedFeature?.id) return;
+
+  const geojson = loadFromLocalStorage();
+  if (!geojson || !geojson.features) return;
+
+  const updatedFeatures = geojson.features.map((feature) =>
+    feature.id === updatedFeature.id ? updatedFeature : feature
+  );
+
+  saveToLocalStorage({
+    ...geojson,
+    features: updatedFeatures,
+  });
+};
+
 export const loadFromLocalStorage = () => {
   const geojson = localStorage.getItem(LOCAL_STORAGE_KEY);
   return geojson ? JSON.parse(geojson) : null;
@@ -57,4 +87,8 @@ export function generateUUID() {
     const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
+}
+
+export function deepEqual(obj1, obj2) {
+  return JSON.stringify(obj1) === JSON.stringify(obj2);
 }

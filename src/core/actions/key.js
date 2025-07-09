@@ -1,7 +1,9 @@
-import { clearLocalStorage } from "../utils";
+import { clearLocalStorage, removeFeatureFromLocalStorage } from "../utils";
 
 export class Keyboard {
-  static keyDown(mapContainer, drawRef) {
+  static keyDown(mapContainer, drawRef, mapRef, selectedElement) {
+    const map = mapRef.current;
+
     const handleKeyDown = (e) => {
       const mapEl = mapContainer.current;
       const activeEl = document.activeElement;
@@ -18,8 +20,9 @@ export class Keyboard {
       // Backspace: xóa hết
       if (e.key === "Backspace") {
         e.preventDefault();
-        console.log(345);
-        // clearAllFeatures(map);
+        if (selectedElement) {
+          clearAllFeatures(map, [selectedElement]);
+        }
       }
     };
 
@@ -49,10 +52,17 @@ export class Keyboard {
 }
 
 export const clearAllFeatures = (map, features) => {
-  // features.forEach((f) => {
-  //   map.removeLayer();
-  //   map.removeSource();
-  // });
-  // // Xóa luôn trong localStorage nếu bạn đang lưu ở đó
-  // clearLocalStorage();
+  if (!features.length) return;
+
+  features.forEach((f) => {
+    const sourceId = `source-${f.id}`;
+    const layerId = `layer-${f.id}`;
+    const outlineId = `outline-${f.id}`;
+
+    if (map.getLayer(outlineId)) map.removeLayer(outlineId);
+    if (map.getLayer(layerId)) map.removeLayer(layerId);
+    if (map.getSource(sourceId)) map.removeSource(sourceId);
+
+    removeFeatureFromLocalStorage(f.id);
+  });
 };

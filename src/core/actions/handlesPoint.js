@@ -1,25 +1,56 @@
-import { loadFromLocalStorage, saveToLocalStorage } from "../utils";
+import {
+  loadFromLocalStorage,
+  saveToLocalStorage,
+  updateFeatureInLocalStorage,
+} from "../utils";
+import { updateBoundingBoxes } from "./boundingBox";
+import { Selection } from "./selection";
 
 export class HandleDragging {
   static getCornerHandles(feature) {
     if (!feature?.geometry) return [];
 
-    let coordinates = [];
+    const { type, coordinates } = feature.geometry;
+    let points = [];
 
-    if (feature.geometry.type === "Polygon") {
-      coordinates = feature.geometry.coordinates[0]; // Vòng ngoài
-    } else if (feature.geometry.type === "Image") {
-      coordinates = [...feature.geometry.coordinates];
-      if (
-        coordinates.length &&
-        (coordinates[0][0] !== coordinates.at(-1)[0] ||
-          coordinates[0][1] !== coordinates.at(-1)[1])
-      ) {
-        coordinates.push(coordinates[0]);
-      }
+    switch (type) {
+      case "Polygon":
+        points = coordinates[0]; // outer ring
+        break;
+
+      case "Image":
+        points = [...coordinates];
+        if (
+          points.length &&
+          (points[0][0] !== points.at(-1)[0] ||
+            points[0][1] !== points.at(-1)[1])
+        ) {
+          points.push(points[0]);
+        }
+        break;
+
+      case "LineString":
+        points = [...coordinates, coordinates[0]];
+        break;
+
+      case "MultiPolygon":
+        // Lấy tất cả các đỉnh của tất cả polygon con
+        points = coordinates.flatMap((poly) => poly[0]);
+        break;
+
+      case "MultiLineString":
+        points = coordinates.flat();
+        break;
+
+      case "Point":
+        points = [coordinates];
+        break;
+
+      default:
+        return [];
     }
 
-    return coordinates.slice(0, -1).map((coord, idx) => ({
+    return points.slice(0, -1).map((coord, idx) => ({
       type: "Feature",
       id: `${feature.id}-handle-${idx}`,
       geometry: {
@@ -37,8 +68,14 @@ export class HandleDragging {
   static enableHandleDragging(map, onUpdateFeature) {
     let selectedHandle = null;
     let isDragging = false;
+    let animationFrameId = null;
+    let latestCoord = null;
+    let currentFeature = null;
 
     map.on("mousedown", (e) => {
+      if (!map.getLayer("handles-layer")) return;
+      map.dragPan.disable();
+
       const features = map.queryRenderedFeatures(e.point, {
         layers: ["handles-layer"],
       });
@@ -50,44 +87,75 @@ export class HandleDragging {
       }
     });
 
-    map.on("mousemove", (e) => {
-      if (!isDragging || !selectedHandle) return;
+    const update = () => {
+      if (!isDragging || !selectedHandle || !latestCoord) return;
 
       const { parentId, index } = selectedHandle.properties;
-      const newCoord = [e.lngLat.lng, e.lngLat.lat];
-
       const allFeatures = loadFromLocalStorage().features;
       const targetFeature = allFeatures.find((f) => f.id === parentId);
       if (!targetFeature) return;
 
-      // Cập nhật vị trí điểm đang kéo
       let coords = [];
-      if (targetFeature.geometry.type === "Polygon") {
-        coords = [...targetFeature.geometry.coordinates[0]];
-        coords[index] = newCoord;
-        coords[coords.length - 1] = coords[0]; // đóng vòng
-        targetFeature.geometry.coordinates = [coords];
-      } else if (targetFeature.geometry.type === "Image") {
-        coords = [...targetFeature.geometry.coordinates];
-        coords[index] = newCoord;
-        targetFeature.geometry.coordinates = coords;
+
+      switch (targetFeature.geometry.type) {
+        case "Polygon":
+          coords = [...targetFeature.geometry.coordinates[0]];
+          coords[index] = latestCoord;
+          coords[coords.length - 1] = coords[0]; // đóng vòng
+          targetFeature.geometry.coordinates = [coords];
+          break;
+
+        case "Image":
+          coords = [...targetFeature.geometry.coordinates];
+          coords[index] = latestCoord;
+          targetFeature.geometry.coordinates = coords;
+          break;
+
+        case "LineString":
+          coords = [...targetFeature.geometry.coordinates];
+          coords[index] = latestCoord;
+          targetFeature.geometry.coordinates = coords;
+          break;
       }
 
-      // Gọi callback để cập nhật lại feature & re-render
       onUpdateFeature(targetFeature);
+      animationFrameId = null;
+      currentFeature = targetFeature;
+      updateBoundingBoxes(map, targetFeature);
+    };
+
+    map.on("mousemove", (e) => {
+      if (!isDragging || !selectedHandle) return;
+
+      latestCoord = [e.lngLat.lng, e.lngLat.lat];
+
+      if (!animationFrameId) {
+        animationFrameId = requestAnimationFrame(update);
+      }
     });
 
     map.on("mouseup", () => {
-      if (isDragging) {
-        isDragging = false;
-        selectedHandle = null;
-        map.getCanvas().style.cursor = "";
+      if (!isDragging) return;
+
+      isDragging = false;
+      selectedHandle = null;
+      map.getCanvas().style.cursor = "";
+      map.dragPan.enable();
+
+      // Cancel frame nếu còn
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
       }
+
+      // Cập nhật lần cuối và lưu
+      update();
+
+      updateFeatureInLocalStorage(currentFeature);
     });
   }
 
   static addHandlesPoint = (map, handles) => {
-    // 1. Add handles lên map
     if (!map.getSource("handles-source")) {
       map.addSource("handles-source", {
         type: "geojson",
@@ -104,52 +172,41 @@ export class HandleDragging {
         type: "circle",
         source: "handles-source",
         paint: {
-          "circle-radius": 6,
-          "circle-color": "#ff0000",
+          "circle-radius": 8,
+          "circle-color": "#ffffff", // Nền trắng
+          "circle-stroke-color": "#007aff", // Viền xanh (blue iOS)
+          "circle-stroke-width": 2,
         },
       });
     }
   };
 
-  static clearHandlesPoint = (map) => {
-    const sourceId = "handles-source";
-    const source = map.getSource(sourceId);
+  static newHandlesPoint = (map, feature) => {
+    if (!feature || !feature.id) return;
 
-    if (source) {
-      source.setData({
-        type: "FeatureCollection",
-        features: [],
-      });
+    const handles = this.getCornerHandles(feature);
+    this.removeHandlesPoint(map);
+    this.addHandlesPoint(map, handles);
+  };
+
+  static removeHandlesPoint = (map) => {
+    const sourceId = "handles-source";
+    const layerId = "handles-layer";
+    if (map.getLayer(layerId)) {
+      map.removeLayer(layerId);
+    }
+    if (map.getSource(sourceId)) {
+      map.removeSource(sourceId);
     }
   };
 
-  static dragHandlesPoint = (map, targetPolygon) => {
-    const handles = this.getCornerHandles(targetPolygon);
-    this.addHandlesPoint(map, handles);
-
+  static dragHandlesPoint = (map) => {
     this.enableHandleDragging(map, (updatedFeature) => {
       // Cập nhật lại feature trong localStorage
-      const all = loadFromLocalStorage();
-      const newFeatures = all.features.map((f) =>
-        f.id === updatedFeature.id ? updatedFeature : f
-      );
-      saveToLocalStorage({
-        type: "FeatureCollection",
-        features: newFeatures,
-      });
-
-      // Cập nhật lại source trên map
-      const sourceId = `source-${updatedFeature.id}`;
-      if (map.getSource(sourceId)) {
-        map.getSource(sourceId).setData(updatedFeature);
-      }
+      Selection.setSelectedData(map, updatedFeature);
 
       // Cập nhật lại handles
-      const newHandles = this.getCornerHandles(updatedFeature);
-      map.getSource("handles-source").setData({
-        type: "FeatureCollection",
-        features: newHandles,
-      });
+      Selection.setHandlesData(map, updatedFeature);
     });
   };
 }

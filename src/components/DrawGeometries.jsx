@@ -12,7 +12,10 @@ import {
   Keyboard,
   selectAllFeatures,
 } from "../core/actions/key";
-import { hoverBBoxSelected } from "../core/actions/boundingBox";
+import {
+  drawBoundingBox,
+  hoverBBoxSelected,
+} from "../core/actions/boundingBox";
 import { calculateImageBounds, loadFromLocalStorage } from "../core/utils";
 import { LoadData } from "../core/actions/loadData";
 import * as turf from "@turf/turf";
@@ -21,21 +24,22 @@ import {
   SelectedSelection,
 } from "../core/actions/selectedElement";
 import { MapContext } from "../contexts/mapContext";
-import { dragElement } from "../core/actions/dragElement";
+import { dragElement, handleMoveElement } from "../core/actions/dragElement";
+import { HandleDragging } from "../core/actions/handlesPoint";
 
 const DrawGeometries = () => {
   const navigate = useNavigate();
   const mapRef = useRef(null);
   const mapContainer = useRef(null);
   const drawRef = useRef(null);
-  const [height, setHeight] = useState("");
-  const [imageDataUrl, setImageDataUrl] = useState(null);
+  const [hide, setHide] = useState(true);
+
   const { selectedElement, setSelectedElement } = useContext(MapContext);
 
   useEffect(() => {
     const map = createMap({
       mapContainer: mapContainer.current,
-      // bearing: -33.5,
+      bearing: -33.5,
     });
 
     mapRef.current = map;
@@ -59,32 +63,31 @@ const DrawGeometries = () => {
     SelectedSelection.getDoubleClickSelection({ map, setSelectedElement });
 
     map.on("load", () => {
-      hoverBBoxSelected(selectedElement, map);
       LoadData.loadDefaultData(map);
+      hoverBBoxSelected(selectedElement, mapRef.current);
+      // handleMoveElement(map, selectedElement);
     });
 
     return () => {
       map.remove();
     };
-  }, [imageDataUrl]);
+  }, []);
 
   useEffect(() => {
-    Keyboard.keyDown(mapContainer, drawRef);
-  }, []);
+    Keyboard.keyDown(mapContainer, drawRef, mapRef, selectedElement);
+  }, [selectedElement]);
 
   return (
     <div style={{ position: "relative", height: "100vh" }}>
       <div ref={mapContainer} style={{ height: "100%" }} />
 
-      <FormProperty>
-        <SubmitButton onClick={() => navigate("/3d")}>3D</SubmitButton>
-        <BasicComponent
-          drawRef={drawRef}
-          height={height}
-          setHeight={setHeight}
-          mapRef={mapRef}
-        />
-      </FormProperty>
+      <ButtonShow onClick={() => setHide(!hide)}>Show</ButtonShow>
+      {!hide && (
+        <FormProperty>
+          <SubmitButton onClick={() => navigate("/3d")}>3D</SubmitButton>
+          <BasicComponent drawRef={drawRef} mapRef={mapRef} />
+        </FormProperty>
+      )}
     </div>
   );
 };
@@ -117,5 +120,23 @@ const SubmitButton = styled.button`
   a {
     text-decoration: none;
     color: white;
+  }
+`;
+
+const ButtonShow = styled.button`
+  padding: 0.6rem 1.2rem;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  position: absolute;
+  top: 2px;
+  right: 10px;
+  z-index: 2;
+
+  &:hover {
+    background: #0056b3;
   }
 `;

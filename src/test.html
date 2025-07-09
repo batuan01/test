@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Map with Image Upload</title>
+    <link
+      href="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://unpkg.com/geoman-io@latest/dist/geoman.css"
+      rel="stylesheet"
+    />
+    <style>
+      #map {
+        width: 100%;
+        height: 500px;
+      }
+      .custom-marker {
+        width: 100px; /* Kích thước hình ảnh */
+        height: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <input type="file" id="imageUpload" accept="image/*" />
+    <script src="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js"></script>
+    <script src="https://unpkg.com/geoman-io@latest/dist/geoman.min.js"></script>
+    <script>
+      const map = new maplibregl.Map({
+        container: "map",
+        style:
+          "https://api.maptiler.com/maps/fefc1891-4e0d-4102-a51f-09768f839b85/style.json?key=S1qTEATai9KydkenOF6W",
+        center: [139.7977668232757, 35.63168006521393],
+        zoom: 16,
+      });
+
+      // Khởi tạo Geoman
+      map.pm.addControls({
+        position: "topright",
+        drawPolygon: true,
+        drawLine: true,
+        drawMarker: true,
+        editMode: true,
+        removeLayer: true,
+      });
+
+      // Xử lý upload hình ảnh
+      document
+        .getElementById("imageUpload")
+        .addEventListener("change", function (e) {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = function (event) {
+              const imgSrc = event.target.result;
+
+              const marker = new maplibregl.Marker({
+                element: createMarker(imgSrc),
+              })
+                .setLngLat(map.getCenter()) // Đặt vị trí của marker
+                .addTo(map);
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+
+      // Tạo phần tử marker tùy chỉnh
+      function createMarker(imgSrc) {
+        const div = document.createElement("div");
+        div.className = "custom-marker";
+        const img = document.createElement("img");
+        img.src = imgSrc;
+        img.style.width = "100%"; // Chiều rộng của hình ảnh
+        div.appendChild(img);
+        return div;
+      }
+    </script>
+  </body>
+</html>

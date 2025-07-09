@@ -4,6 +4,7 @@ import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import * as turf from "@turf/turf";
 import { saveAs } from "file-saver";
 import { createMap } from "../core/actions/map";
+import boothsGeoJSON from "../data/boothsjson.json";
 
 export default function MapLibreDrawCircle() {
   const mapContainer = useRef(null);
@@ -216,6 +217,66 @@ export default function MapLibreDrawCircle() {
           features: [bboxPolygon],
         });
       }
+    });
+
+    map.on("load", () => {
+      // Add source for polygon booths
+      // map.addSource("booths", {
+      //   type: "geojson",
+      //   data: boothsGeoJSON,
+      // });
+
+      // // Add fill layer for polygons
+      // map.addLayer({
+      //   id: "booth-fill",
+      //   type: "fill",
+      //   source: "booths",
+      //   paint: {
+      //     "fill-color": ["get", "color"],
+      //     "fill-opacity": 0.6,
+      //   },
+      // });
+
+      // // Add outline layer
+      // map.addLayer({
+      //   id: "booth-outline",
+      //   type: "line",
+      //   source: "booths",
+      //   paint: {
+      //     "line-color": "#000",
+      //     "line-width": 1,
+      //   },
+      // });
+
+      // // Add image layer if any image features
+      // map.addSource("booth-images", {
+      //   type: "geojson",
+      //   data: {
+      //     type: "FeatureCollection",
+      //     features: boothsGeoJSON.features.filter(
+      //       (f) => f.properties.type === "image"
+      //     ),
+      //   },
+      // });
+      // map.addLayer({
+      //   id: "booth-images-layer",
+      //   type: "raster",
+      //   source: "booth-images",
+      //   paint: { "raster-opacity": 0.8 },
+      // });
+
+      // Sync Draw with existing features
+      draw.add(boothsGeoJSON);
+
+      // // On draw create/update, update source data
+      // map.on("draw.create", updateBooths);
+      // map.on("draw.update", updateBooths);
+      // map.on("draw.delete", updateBooths);
+
+      // function updateBooths() {
+      //   const allData = draw.getAll();
+      //   map.getSource("booths").setData(allData);
+      // }
     });
 
     mapRef.current = map;

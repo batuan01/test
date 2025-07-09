@@ -3,17 +3,64 @@ import { loadFromLocalStorage } from "../utils";
 import { ImageElement } from "./image";
 
 // Vẽ BBox cho feature
+// export const drawBoundingBox = (feature, map, layerType = "hover") => {
+//   if (!map || !feature || feature.geometry.type !== "Polygon") return;
+
+//   const bbox = turf.bbox(feature);
+//   const bboxPolygon = turf.bboxPolygon(bbox);
+//   bboxPolygon.properties = { type: `${layerType}-bbox` };
+
+//   const sourceId = `bbox-${layerType}`;
+//   const layerId = `bbox-${layerType}-line`;
+
+//   // Add source nếu chưa có
+//   if (!map.getSource(sourceId)) {
+//     map.addSource(sourceId, {
+//       type: "geojson",
+//       data: {
+//         type: "FeatureCollection",
+//         features: [],
+//       },
+//     });
+//   }
+
+//   // Add layer nếu chưa có
+//   if (!map.getLayer(layerId)) {
+//     // console.log(layerId);
+//     map.addLayer({
+//       id: layerId,
+//       type: "line",
+//       source: sourceId,
+//       layout: {},
+//       paint: {
+//         "line-color": layerType === "hover" ? "#0099FF" : "#0099FF", // màu khác biệt
+//         "line-width": 3,
+//         ...(layerType === "hover" ? { "line-dasharray": [4, 2] } : {}),
+//       },
+//     });
+//   }
+
+//   // Set data
+//   const source = map.getSource(sourceId);
+//   if (source) {
+//     source.setData({
+//       type: "FeatureCollection",
+//       features: [bboxPolygon],
+//     });
+//   }
+// };
+
 export const drawBoundingBox = (feature, map, layerType = "hover") => {
   if (!map || !feature || feature.geometry.type !== "Polygon") return;
 
-  const bbox = turf.bbox(feature);
-  const bboxPolygon = turf.bboxPolygon(bbox);
+  const bboxPolygon = getMinimumRotatedBBox(feature);
+  if (!bboxPolygon) return;
+
   bboxPolygon.properties = { type: `${layerType}-bbox` };
 
   const sourceId = `bbox-${layerType}`;
   const layerId = `bbox-${layerType}-line`;
 
-  // Add source nếu chưa có
   if (!map.getSource(sourceId)) {
     map.addSource(sourceId, {
       type: "geojson",
@@ -24,23 +71,20 @@ export const drawBoundingBox = (feature, map, layerType = "hover") => {
     });
   }
 
-  // Add layer nếu chưa có
   if (!map.getLayer(layerId)) {
-    // console.log(layerId);
     map.addLayer({
       id: layerId,
       type: "line",
       source: sourceId,
       layout: {},
       paint: {
-        "line-color": layerType === "hover" ? "#0099FF" : "#0099FF", // màu khác biệt
+        "line-color": layerType === "hover" ? "#0099FF" : "#FF9900",
         "line-width": 3,
         ...(layerType === "hover" ? { "line-dasharray": [4, 2] } : {}),
       },
     });
   }
 
-  // Set data
   const source = map.getSource(sourceId);
   if (source) {
     source.setData({
@@ -52,7 +96,7 @@ export const drawBoundingBox = (feature, map, layerType = "hover") => {
 
 export const removeBBoxSelected = (map) => {
   const sources = ["bbox-selected", "bbox-hover"];
-  const layers = ["bbox-selected-line", "bbox-hover-layer"];
+  const layers = ["bbox-selected-line", "bbox-hover-line"];
 
   layers.forEach((id) => {
     if (map.getLayer(id)) map.removeLayer(id);
@@ -112,13 +156,14 @@ export const clearBoundingBox = (map, layerType = "hover") => {
 };
 
 export function updateBoundingBoxes(map, movedFeature) {
-  const bbox = turf.bbox(movedFeature);
-  const bboxPolygon = turf.bboxPolygon(bbox);
-  bboxPolygon.properties = { type: "bbox" };
+  const rotatedBBox = getMinimumRotatedBBox(movedFeature);
+  if (!rotatedBBox) return;
+
+  rotatedBBox.properties = { type: "bbox" };
 
   const featureCollection = {
     type: "FeatureCollection",
-    features: [bboxPolygon],
+    features: [rotatedBBox],
   };
 
   ["bbox-selected", "bbox-hover"].forEach((sourceId) => {
@@ -166,4 +211,38 @@ export const renderBBoxHandles = (map, handlesFC) => {
       },
     });
   }
+};
+
+export const getMinimumRotatedBBox = (feature) => {
+  const convexHull = turf.convex(feature);
+  if (!convexHull) return null;
+
+  const coords = convexHull.geometry.coordinates[0];
+  let minArea = Infinity;
+  let bestPolygon = null;
+
+  for (let i = 0; i < coords.length - 1; i++) {
+    const p1 = coords[i];
+    const p2 = coords[i + 1];
+    const angle = -Math.atan2(p2[1] - p1[1], p2[0] - p1[0]) * (180 / Math.PI);
+
+    const rotated = turf.transformRotate(feature, angle, {
+      pivot: turf.centroid(feature),
+      mutate: false,
+    });
+
+    const bbox = turf.bbox(rotated);
+    const rect = turf.bboxPolygon(bbox);
+    const area = turf.area(rect);
+
+    if (area < minArea) {
+      minArea = area;
+      bestPolygon = turf.transformRotate(rect, -angle, {
+        pivot: turf.centroid(feature),
+        mutate: false,
+      });
+    }
+  }
+
+  return bestPolygon;
 };

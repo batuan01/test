@@ -3,112 +3,60 @@ import {
   calculateImageBounds,
   loadFromLocalStorage,
   saveToLocalStorage,
+  updateFeatureInLocalStorage,
 } from "../../core/utils";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { LoadData } from "../../core/actions/loadData";
 import { ImageElement } from "../../core/actions/image";
 import { selectedElement } from "../../core/actions/selectedElement";
 import { MapContext } from "../../contexts/mapContext";
+import { use } from "react";
+import { Selection } from "../../core/actions/selection";
 
-export const BasicComponent = ({ drawRef, height, setHeight, mapRef }) => {
+export const BasicComponent = ({ drawRef, mapRef }) => {
   const [color, setColor] = useState("#787878");
+  const [height, setHeight] = useState("");
+  const [label, setLabel] = useState("");
+
   const { selectedElement, setSelectedElement } = useContext(MapContext);
 
-  const updateSelectedFeatureHeight = (height) => {
-    const draw = drawRef.current;
-    if (!draw) return;
+  const updateFeatureProperty = (property, value, mapRef) => {
+    if (!selectedElement) return;
 
-    const terraDraw = draw.getTerraDrawInstance();
-    const selected = draw.getFeatures(true).features;
-
-    if (!selected.length) return;
-
-    const original = selected[0];
-
-    // Tạo bản sao đã chỉnh sửa
+    const map = mapRef.current;
     const updated = {
-      ...original,
+      ...selectedElement,
       properties: {
-        ...original.properties,
-        height: height,
+        ...selectedElement.properties,
+        [property]: value,
       },
     };
 
-    // ✅ Xóa feature cũ
-    terraDraw.removeFeatures([original.id]);
+    // Update map source using Selection class
+    Selection.setSelectedData(map, updated);
 
-    // ✅ Thêm lại feature đã chỉnh sửa
-    terraDraw.addFeatures([updated]);
+    // Update local storage
+    updateFeatureInLocalStorage(updated);
+  };
 
-    // 🔁 Lưu lại toàn bộ features nếu cần
-    const stored = loadFromLocalStorage();
-    if (!stored || !stored.features) return;
-
-    const updatedFeatures = stored.features.map((f) =>
-      f.id === original.id
-        ? {
-            ...f,
-            properties: {
-              ...f.properties,
-              height: height,
-            },
-          }
-        : f
-    );
-
-    saveToLocalStorage({
-      ...stored,
-      features: updatedFeatures,
-    });
+  const updateSelectedFeatureHeight = (height, mapRef) => {
+    updateFeatureProperty("height", height, mapRef);
   };
 
   const handleChangeColor = (e) => {
     const newColor = e.target.value;
     setColor(newColor);
+    updateFeatureProperty("color", newColor || "#787878", mapRef);
 
-    const draw = drawRef.current;
-    if (!draw) return;
+    const layerId = `layer-${selectedElement.id}`;
+    const map = mapRef.current;
+    if (map.getLayer(layerId)) {
+      map.setPaintProperty(layerId, "fill-color", newColor || "#787878");
+    }
+  };
 
-    const terraDraw = draw.getTerraDrawInstance();
-    const selected = draw.getFeatures(true).features;
-
-    if (!selected.length) return;
-
-    const original = selected[0];
-
-    const updatedFeature = {
-      ...original,
-      properties: {
-        ...original.properties,
-        color: newColor,
-      },
-    };
-
-    // Xóa feature cũ
-    terraDraw.removeFeatures([original.id]);
-
-    // Thêm lại feature mới đã đổi màu
-    terraDraw.addFeatures([updatedFeature]);
-
-    const stored = loadFromLocalStorage();
-    if (!stored || !stored.features) return;
-
-    const updatedFeatures = stored.features.map((f) =>
-      f.id === original.id
-        ? {
-            ...f,
-            properties: {
-              ...f.properties,
-              color: newColor,
-            },
-          }
-        : f
-    );
-
-    saveToLocalStorage({
-      ...stored,
-      features: updatedFeatures,
-    });
+  const updateSelectedFeatureLabel = (label, mapRef) => {
+    updateFeatureProperty("label", label, mapRef);
   };
 
   const handleUploadImage = async (e) => {
@@ -143,21 +91,49 @@ export const BasicComponent = ({ drawRef, height, setHeight, mapRef }) => {
     ];
   }
 
+  useEffect(() => {
+    if (!selectedElement) {
+      setColor("#787878");
+      setHeight("");
+      setLabel("");
+      return;
+    }
+    setColor(selectedElement.properties.color);
+    setHeight(selectedElement.properties.height);
+    setLabel(selectedElement.properties.label);
+  }, [selectedElement]);
+
   const logdata = () => {
     // const draw = drawRef.current;
     // const geojson = draw.getFeatures();
     // // console.log("geojson", geojson);
-    // console.log(mapRef.current.getStyle());
+    console.log(mapRef.current.getStyle());
     // const map = mapRef.current;
     // moveLayerUp(mapRef.current, "layer-9c6f0cf2-3e56-4ceb-9257-53a902d82e67");
     // map.removeLayer("layer-9c6f0cf2-3e56-4ceb-9257-53a902d82e67");
     // map.moveLayer(layerId, aboveLayerId);
-
     // console.log("selectedElement", selectedElement);
+
+    console.log(loadFromLocalStorage());
   };
 
   return (
     <Form>
+      <FormGroup>
+        <Label htmlFor="label">Label:</Label>
+        <Input
+          type="string"
+          id="label"
+          placeholder="label..."
+          value={label}
+          onChange={(e) => {
+            const value = e.target.value;
+            setLabel(value); // 👈 cập nhật state để tránh cảnh báo
+            updateSelectedFeatureLabel(value, mapRef); // 👈 cập nhật dữ liệu feature
+          }}
+        />
+      </FormGroup>
+
       <FormGroup>
         <Label htmlFor="height">Height:</Label>
         <Input
@@ -171,7 +147,7 @@ export const BasicComponent = ({ drawRef, height, setHeight, mapRef }) => {
 
             const parsed = parseFloat(value);
             if (!isNaN(parsed)) {
-              updateSelectedFeatureHeight(parsed); // 👈 cập nhật dữ liệu feature
+              updateSelectedFeatureHeight(parsed, mapRef); // 👈 cập nhật dữ liệu feature
             }
           }}
         />

@@ -15,7 +15,7 @@ import {
 } from "./scale";
 import { LoadData } from "./loadData";
 
-export const Terradraw = (map, drawRef) => {
+export const TerradrawAction = (map, drawRef) => {
   map.on("load", () => {
     const draw = new MaplibreTerradrawControl({
       modes: [
@@ -29,6 +29,10 @@ export const Terradraw = (map, drawRef) => {
         "angled-rectangle",
         "sensor",
         "sector",
+        "select",
+        "delete-selection",
+        "delete",
+        "download",
       ],
       open: true,
     });
@@ -41,8 +45,6 @@ export const Terradraw = (map, drawRef) => {
 
     // 🔁 Lắng nghe thay đổi màu
     LoadData.LoadColor(map);
-
-    setupCornerHandlers(map, draw);
   });
 };
 
@@ -75,12 +77,6 @@ export const SaveAndLoadData = (draw, map) => {
     }));
 
     const allFeatures = [...geojson.features, ...updatedFeatures];
-
-    // 👉 Chỉ add nếu chưa có
-    updatedFeatures.forEach((f) => LoadData.AddFeature(f, map));
-
-    terraDraw.clear();
-    // terraDraw.stop();
 
     saveToLocalStorage({
       type: "FeatureCollection",
