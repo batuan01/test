@@ -1,3 +1,4 @@
+import { AppGlobals } from "../globals";
 import { HandleDragging } from "./handlesPoint";
 
 export class Selection {
@@ -9,22 +10,40 @@ export class Selection {
   //   });
   // }
 
-  static lastDataStr = "";
-
-  static setSelectedData(map, data) {
-    const sourceId = `source-${data.id}`;
-    const source = map.getSource(sourceId);
+  static setSelectedData(map, data, sourceId) {
+    const id = sourceId ?? (data.source || `source-${data.id}`);
+    const source = map.getSource(id);
     if (!source) return;
+
+    // Nếu là ảnh raster (image)
+    if (data.geometry?.type === "Image") {
+      const coordinates = data.geometry?.coordinates;
+
+      // Chỉ cập nhật nếu source là type: 'image'
+      if (source.setCoordinates && coordinates) {
+        try {
+          source.setCoordinates(coordinates);
+        } catch (err) {
+          console.warn("Không thể cập nhật ảnh:", err);
+        }
+      }
+
+      return; // kết thúc ở đây nếu là ảnh
+    }
+
+    // Trường hợp GeoJSON (Polygon, LineString, ...)
+    const currentData = source._data || source._options?.data;
+    if (!currentData || !currentData.features) return;
+
+    const updatedFeatures = currentData.features.map((feature) => {
+      return feature.id === data.id ? data : feature;
+    });
 
     const newData = {
       type: "FeatureCollection",
-      features: [data],
+      features: updatedFeatures,
     };
 
-    const newDataStr = JSON.stringify(newData);
-    if (this.lastDataStr === newDataStr) return;
-
-    this.lastDataStr = newDataStr;
     source.setData(newData);
   }
 

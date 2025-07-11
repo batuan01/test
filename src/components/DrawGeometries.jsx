@@ -3,7 +3,7 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 
 // @ts-ignore: TerraDraw is a UMD global so we import it this way
 import { createMap } from "../core/actions/map";
-import { Terradraw } from "../core/actions/draw";
+import { DrawElement } from "../core/actions/draw";
 import { Link, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { BasicComponent } from "./right-panel/BasicComponent";
@@ -12,10 +12,6 @@ import {
   Keyboard,
   selectAllFeatures,
 } from "../core/actions/key";
-import {
-  drawBoundingBox,
-  hoverBBoxSelected,
-} from "../core/actions/boundingBox";
 import { calculateImageBounds, loadFromLocalStorage } from "../core/utils";
 import { LoadData } from "../core/actions/loadData";
 import * as turf from "@turf/turf";
@@ -26,6 +22,10 @@ import {
 import { MapContext } from "../contexts/mapContext";
 import { dragElement, handleMoveElement } from "../core/actions/dragElement";
 import { HandleDragging } from "../core/actions/handlesPoint";
+import { BoundingBox } from "../core/actions/boundingBox";
+import { showContextMenu } from "../core/actions/rightMouse";
+import { LayerOrdering } from "../core/actions/layerOrdering";
+import { AppGlobals } from "../core/globals";
 
 const DrawGeometries = () => {
   const navigate = useNavigate();
@@ -46,7 +46,7 @@ const DrawGeometries = () => {
     map.doubleClickZoom.disable();
     // map.dragPan.disable();
 
-    Terradraw(map, drawRef);
+    DrawElement.Terradraw(map, drawRef);
 
     map.on("click", (e) => {
       // const selected = drawRef.current.getFeatures(true).features;
@@ -64,8 +64,32 @@ const DrawGeometries = () => {
 
     map.on("load", () => {
       LoadData.loadDefaultData(map);
-      hoverBBoxSelected(selectedElement, mapRef.current);
-      // handleMoveElement(map, selectedElement);
+      BoundingBox.hoverBBoxSelected(selectedElement, mapRef.current);
+    });
+
+    map.on("contextmenu", (e) => {
+      const clickedLngLat = [e.lngLat.lng, e.lngLat.lat];
+      const storedData = AppGlobals.getElements();
+      if (!storedData?.length) return;
+
+      const feature = SelectedSelection.findFeatureAtPoint(
+        clickedLngLat,
+        storedData
+      );
+
+      showContextMenu(
+        e.point,
+        () => {
+          if (feature) {
+            LayerOrdering.bringForward(map, feature);
+          }
+        },
+        () => {
+          if (feature) {
+            LayerOrdering.sendBackward(map, feature);
+          }
+        }
+      );
     });
 
     return () => {
@@ -76,6 +100,11 @@ const DrawGeometries = () => {
   useEffect(() => {
     Keyboard.keyDown(mapContainer, drawRef, mapRef, selectedElement);
   }, [selectedElement]);
+
+  document.addEventListener("click", () => {
+    const existing = document.getElementById("map-context-menu");
+    if (existing) existing.remove();
+  });
 
   return (
     <div style={{ position: "relative", height: "100vh" }}>
@@ -98,7 +127,6 @@ const FormProperty = styled.div`
   position: absolute;
   top: 40px;
   right: 10px;
-  background-color: rgba(255, 255, 255, 0.9);
   padding: 15px;
   width: 300px;
   text-align: center;

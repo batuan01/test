@@ -1,3 +1,4 @@
+import { AppGlobals } from "../globals";
 import {
   calculateImageBoundsWithAspect,
   generateUUID,
@@ -5,6 +6,7 @@ import {
   newDataToLocalStorage,
   saveToLocalStorage,
 } from "../utils";
+import { DrawElement } from "./draw";
 import { LoadData } from "./loadData";
 
 export class ImageElement {
@@ -21,6 +23,8 @@ export class ImageElement {
             aspectRatio
           );
 
+          const newIndex = AppGlobals.getMaxIndex() + 1;
+
           const imageFeature = {
             type: "Feature",
             id: imageId,
@@ -30,14 +34,20 @@ export class ImageElement {
             },
             properties: {
               type: "image",
+              id: imageId,
+              index: newIndex,
               imageUrl: imageDataUrl,
             },
           };
-          //   if (!map.hasImage(imageId)) {
-          //     map.addImage(imageId, img, { pixelRatio: 1 });
-          //   }
 
-          LoadData.AddFeature(imageFeature, map);
+          const geojson = {
+            type: "FeatureCollection",
+            sourceType: "Image",
+            features: [imageFeature],
+          };
+
+          LoadData.AddFeature(geojson, map, imageId);
+          AppGlobals.setDataToStore(imageFeature);
 
           newDataToLocalStorage(imageFeature);
         } catch (err) {
@@ -59,6 +69,26 @@ export class ImageElement {
         coordinates: [
           [...feature.geometry.coordinates, feature.geometry.coordinates[0]],
         ],
+      },
+    };
+  }
+
+  static convertImage(feature) {
+    const coords = feature.geometry.coordinates?.[0];
+    if (feature.geometry.type !== "Polygon" || !coords) return feature;
+
+    const simplified =
+      coords.length > 1 &&
+      coords[0][0] === coords.at(-1)[0] &&
+      coords[0][1] === coords.at(-1)[1]
+        ? coords.slice(0, -1)
+        : coords;
+
+    return {
+      ...feature,
+      geometry: {
+        type: "Image",
+        coordinates: simplified,
       },
     };
   }

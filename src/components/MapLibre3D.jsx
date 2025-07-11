@@ -17,8 +17,10 @@ const MapLibre3D = () => {
   const navigate = useNavigate();
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
+  const markersRef = useRef(new Map());
 
-  const storedData = loadFromLocalStorage();
+  // const storedData = loadFromLocalStorage();
+  const storedData = booths;
 
   const polygonFeatures = storedData.features.filter(
     (f) => f.geometry?.type === "Polygon"
@@ -93,166 +95,6 @@ const MapLibre3D = () => {
 
         // Add symbol layer
         if (!map.getLayer("polygons-labels")) {
-          // map.addLayer({
-          //   id: "polygons-labels",
-          //   type: "symbol",
-          //   source: "polygon-labels-src",
-          //   layout: {
-          //     "text-field": ["get", "label"],
-          //     "text-size": [
-          //       "interpolate",
-          //       ["linear"],
-          //       ["zoom"],
-          //       15,
-          //       10,
-          //       18,
-          //       16,
-          //     ],
-          //     // "text-offset": [
-          //     //   "interpolate",
-          //     //   ["linear"],
-          //     //   ["get", "height"],
-          //     //   0,
-          //     //   ["literal", [0, 0]],
-          //     //   20,
-          //     //   ["literal", [0, -10]],
-          //     //   40,
-          //     //   ["literal", [0, -20]],
-          //     //   60,
-          //     //   ["literal", [0, -30]],
-          //     // ],
-          //     // "text-offset": ["literal", [0, ["*", ["get", "height"], -1]]],
-          //     "text-offset": [
-          //       "interpolate",
-          //       ["linear"],
-          //       ["get", "height"],
-          //       0,
-          //       ["literal", [0, 0]],
-          //       100,
-          //       ["literal", [0, -10]],
-          //     ],
-
-          //     "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-          //     "text-allow-overlap": true,
-          //   },
-          //   paint: {
-          //     "text-color": "#ffffff",
-          //     "text-halo-color": "#000000",
-          //     "text-halo-width": 1,
-          //   },
-          // });
-          // map.addLayer({
-          //   id: "polygons-labels",
-          //   type: "symbol",
-          //   source: "polygon-labels-src",
-          //   // layout: {
-          //   //   "text-field": ["get", "label"],
-          //   //   "text-size": 12,
-          //   //   // "text-offset": ["literal", [0, -40]], // dịch lên nhẹ
-          //   //   // "text-offset": ["get", "labelOffset"],
-          //   //   "text-font": ["Open Sans Bold"],
-          //   //   "text-allow-overlap": true,
-          //   // },
-          //   // paint: {
-          //   //   "text-color": "#ffffff",
-          //   //   "text-halo-color": "#000000",
-          //   //   "text-halo-width": 1,
-          //   //   // "text-translate": [
-          //   //   //   "interpolate",
-          //   //   //   ["linear"],
-          //   //   //   ["zoom"],
-          //   //   //   15,
-          //   //   //   ["literal", [0, ["*", ["get", "height"], -0.5]]], // hoặc -1
-          //   //   //   18,
-          //   //   //   ["literal", [0, ["*", ["get", "height"], -1]]],
-          //   //   // ],
-
-          //   //   // "text-translate": [
-          //   //   //   "literal",
-          //   //   //   [0, ["*", ["get", "labelOffset"], -0.5]],
-          //   //   // ],
-          //   //   // "text-translate": [0, -500],
-          //   //   "text-translate": [
-          //   //     "interpolate",
-          //   //     ["linear"],
-          //   //     ["zoom"],
-          //   //     8,
-          //   //     ["literal", [0, 0]],
-          //   //     17,
-          //   //     ["literal", [-20, -20]],
-          //   //   ],
-          //   //   "text-translate-anchor": "viewport",
-          //   // },
-          //   layout: {
-          //     "text-field": ["format", ["get", "label"], { "font-scale": 1 }],
-          //     "text-size": [
-          //       "interpolate",
-          //       ["linear"],
-          //       ["zoom"],
-          //       15,
-          //       0,
-          //       15.5,
-          //       4,
-          //       16,
-          //       6,
-          //       16.5,
-          //       8,
-          //       17,
-          //       10,
-          //       17.5,
-          //       12,
-          //       18,
-          //       14,
-          //       18.5,
-          //       16,
-          //       19,
-          //       18,
-          //     ],
-          //     // 'text-anchor': 'bottom', // Đặt text-anchor là 'bottom' để đẩy văn bản lên đỉnh các tòa nhà
-          //     "text-offset": [
-          //       "interpolate",
-          //       ["linear"],
-          //       ["zoom"],
-          //       15,
-          //       ["literal", [0, 0]],
-          //       16,
-          //       ["literal", [0, -2]],
-          //       17,
-          //       ["literal", [0, -2.5]],
-          //       18,
-          //       ["literal", [0, -3.5]],
-          //       20,
-          //       ["literal", [0, -8.5]],
-          //       25,
-          //       ["literal", [0, -10.5]],
-          //     ],
-          //     // 'text-offset': ['literal', [0, -3]],
-          //     // "text-font": ["DIN Offc Pro Bold", "Arial Unicode MS Bold"], // Đặt kiểu chữ đậm
-          //   },
-          // });
-
-          // map.addLayer({
-          //   id: "off-leash-areas",
-          //   type: "symbol",
-          //   source: "polygon-labels-src",
-          //   layout: {
-          //     "icon-image": "dog_park",
-          //     "text-field": [
-          //       "format",
-          //       ["upcase", ["get", "label"]],
-          //       // { "font-scale": 0.8 },
-          //       // "\n",
-          //       // {},
-          //       // ["downcase", ["get", "label"]],
-          //       // { "font-scale": 0.6 },
-          //     ],
-          //     "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
-          //     "text-offset": [0, 0.6],
-          //     "text-anchor": "top",
-          //     "text-size": 12,
-          //   },
-          // });
-
           map.addLayer({
             id: "polygon-labels",
             type: "symbol",
@@ -260,7 +102,26 @@ const MapLibre3D = () => {
             layout: {
               "text-field": ["get", "label"],
               "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
-              "text-size": 12, // 👈 Luôn giữ cố định kích thước
+              // "text-size": 12, // 👈 Luôn giữ cố định kích thước
+              "text-size": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                15,
+                10,
+                15.5,
+                11,
+                16,
+                12,
+                16.5,
+                13,
+                17,
+                14,
+                17.5,
+                15,
+                18,
+                16,
+              ],
               "text-anchor": "top",
               // "text-allow-overlap": true,
             },
@@ -277,9 +138,29 @@ const MapLibre3D = () => {
 
       if (imageFeatures.length) {
         imageFeatures.forEach((f) => {
-          LoadData.AddFeature(f, map);
+          const data = {
+            type: "FeatureCollection",
+            sourceType: "Image",
+            features: [f],
+          };
+          LoadData.AddFeature(data, map);
         });
       }
+
+      labelFeatures.slice(0, 100).forEach((f) => {
+        const img = document.createElement("img");
+        img.src =
+          "https://d1hjkbq40fs2x4.cloudfront.net/2017-08-21/files/landscape-photography_1645-t.jpg";
+        img.style.width = "40px";
+        img.style.height = "40px";
+        img.style.borderRadius = "5px"; // nếu muốn bo tròn
+        img.style.border = "1px solid white"; // tuỳ chọn
+
+        // Thêm marker vào map
+        new maplibregl.Marker({ element: img })
+          .setLngLat(f.geometry.coordinates)
+          .addTo(map);
+      });
     });
 
     return () => map.remove();

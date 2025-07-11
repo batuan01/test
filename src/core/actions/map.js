@@ -16,7 +16,7 @@ export const createMap = ({
     antialias: true,
     hash: "map",
     minZoom: 15, // 👈 Zoom tối thiểu
-    maxZoom: 22, // 👈 Zoom tối đa
+    maxZoom: 18.5, // 👈 Zoom tối đa
     pitchWithRotate: pitchWithRotate ?? false, // Không cho xoay bằng chuột phải + kéo
     dragRotate: dragRotate ?? false, // Không cho xoay bằng chuột
     touchPitch: false, // Không cho xoay bằng 2 ngón tay

@@ -1,9 +1,11 @@
+import { AppGlobals } from "../globals";
 import {
   loadFromLocalStorage,
   saveToLocalStorage,
   updateFeatureInLocalStorage,
 } from "../utils";
-import { updateBoundingBoxes } from "./boundingBox";
+import { BoundingBox } from "./boundingBox";
+import { ImageElement } from "./image";
 import { Selection } from "./selection";
 
 export class HandleDragging {
@@ -84,6 +86,8 @@ export class HandleDragging {
         selectedHandle = features[0];
         isDragging = true;
         map.getCanvas().style.cursor = "grabbing";
+
+        BoundingBox.clearBoundingBox(map, "selected");
       }
     });
 
@@ -91,7 +95,7 @@ export class HandleDragging {
       if (!isDragging || !selectedHandle || !latestCoord) return;
 
       const { parentId, index } = selectedHandle.properties;
-      const allFeatures = loadFromLocalStorage().features;
+      const allFeatures = AppGlobals.getElements();
       const targetFeature = allFeatures.find((f) => f.id === parentId);
       if (!targetFeature) return;
 
@@ -121,7 +125,6 @@ export class HandleDragging {
       onUpdateFeature(targetFeature);
       animationFrameId = null;
       currentFeature = targetFeature;
-      updateBoundingBoxes(map, targetFeature);
     };
 
     map.on("mousemove", (e) => {
@@ -149,9 +152,14 @@ export class HandleDragging {
       }
 
       // Cập nhật lần cuối và lưu
-      update();
+      const feature =
+        currentFeature.geometry.type === "Image"
+          ? ImageElement.convertPoligon(currentFeature)
+          : currentFeature;
 
-      updateFeatureInLocalStorage(currentFeature);
+      update();
+      AppGlobals.setDataToStore(currentFeature); // ✅ lưu polygon mới nhất()
+      BoundingBox.drawBoundingBox(feature, map, "selected");
     });
   }
 
@@ -200,10 +208,10 @@ export class HandleDragging {
     }
   };
 
-  static dragHandlesPoint = (map) => {
+  static dragHandlesPoint = (map, sourceId) => {
     this.enableHandleDragging(map, (updatedFeature) => {
       // Cập nhật lại feature trong localStorage
-      Selection.setSelectedData(map, updatedFeature);
+      Selection.setSelectedData(map, updatedFeature, sourceId);
 
       // Cập nhật lại handles
       Selection.setHandlesData(map, updatedFeature);

@@ -5,15 +5,13 @@ import {
   saveToLocalStorage,
   updateFeatureInLocalStorage,
 } from "../utils";
-import {
-  clearBoundingBox,
-  drawBoundingBox,
-  removeBBoxSelected,
-  updateBoundingBoxes,
-} from "./boundingBox";
+import { BoundingBox } from "./boundingBox";
 import { Selection } from "./selection";
 import { HandleDragging } from "./handlesPoint";
 import { SelectedSelection } from "./selectedElement";
+import { AppGlobals } from "../globals";
+import { RotateController } from "./rotateElement";
+import { ImageElement } from "./image";
 
 /**
  * Kéo polygon theo con trỏ – mượt 60 fps
@@ -28,8 +26,8 @@ export function dragElement(map, feature, onUpdate) {
   let isDragging = false;
   let isMove = false;
   let startLngLat = null; // vị trí chuột lúc Mousedown
-  const stored = loadFromLocalStorage();
-  if (!stored || !stored.features) return;
+  const stored = AppGlobals.getElements();
+  if (!stored) return;
 
   let currentFeature = feature;
 
@@ -41,31 +39,30 @@ export function dragElement(map, feature, onUpdate) {
   /* --------------------------------------------------------------------- */
   /** Dựng polygon đã di chuyển theo offset hiện tại */
   const buildMoved = () => {
-    const original = loadFromLocalStorage().features.find(
-      (f) => f.id === feature.id
+    const original = AppGlobals.getElements().find(
+      (f) => f.properties.id === feature.id
     );
-    let coords = original.geometry.coordinates;
+    if (!original) return feature;
+
     const geomType = currentFeature.geometry.type;
-    if (geomType === "LineString") {
-      coords = [coords];
-      return {
-        ...feature,
-        geometry: {
-          ...feature.geometry,
-          coordinates: coords.map((ring) =>
-            ring.map(([lng, lat]) => [lng + dx, lat + dy])
-          )[0],
-        },
-      };
-    }
+    let coords = original.geometry.coordinates;
+
+    // Đảm bảo coords luôn là mảng 2 chiều
+    const normalizedCoords =
+      geomType === "Image" || geomType === "LineString" ? [coords] : coords;
+
+    const movedCoords = normalizedCoords.map((ring) =>
+      ring.map(([lng, lat]) => [lng + dx, lat + dy])
+    );
 
     return {
       ...feature,
       geometry: {
         ...feature.geometry,
-        coordinates: coords.map((ring) =>
-          ring.map(([lng, lat]) => [lng + dx, lat + dy])
-        ),
+        coordinates:
+          geomType === "Image" || geomType === "LineString"
+            ? movedCoords[0]
+            : movedCoords,
       },
     };
   };
@@ -77,7 +74,6 @@ export function dragElement(map, feature, onUpdate) {
     onUpdate(moved);
 
     Selection.setHandlesData(map, moved);
-    updateBoundingBoxes(map, moved);
 
     rafId = null;
   };
@@ -112,15 +108,16 @@ export function dragElement(map, feature, onUpdate) {
       }
 
       case "Image": {
-        const coords = [...currentFeature.geometry.coordinates];
-        coords.push(coords[0]); // đóng vòng
-        const polygon = {
-          type: "Feature",
-          geometry: {
-            type: "Polygon",
-            coordinates: [coords],
-          },
-        };
+        // const coords = [...currentFeature.geometry.coordinates];
+        // coords.push(coords[0]); // đóng vòng
+        // const polygon = {
+        //   type: "Feature",
+        //   geometry: {
+        //     type: "Polygon",
+        //     coordinates: [coords],
+        //   },
+        // };
+        const polygon = ImageElement.convertPoligon(feature);
         isInside = turf.booleanPointInPolygon(point, polygon);
         break;
       }
@@ -131,6 +128,11 @@ export function dragElement(map, feature, onUpdate) {
     }
 
     if (!isInside) return;
+
+    HandleDragging.removeHandlesPoint(map);
+    BoundingBox.clearBoundingBox(map, "selected");
+    BoundingBox.clearBoundingBox(map, "hover");
+    RotateController.destroy(map);
 
     isDragging = true;
     startLngLat = e.lngLat;
@@ -166,7 +168,16 @@ export function dragElement(map, feature, onUpdate) {
 
     if (isMove) {
       // ---------------- Lưu kết quả ----------------
-      updateFeatureInLocalStorage(currentFeature);
+      const feature =
+        currentFeature.geometry.type === "Image"
+          ? ImageElement.convertPoligon(currentFeature)
+          : currentFeature;
+
+      BoundingBox.drawBoundingBox(feature, map, "selected");
+      AppGlobals.setDataToStore(currentFeature);
+      HandleDragging.newHandlesPoint(map, currentFeature);
+      RotateController.addHandle(map);
+
       isMove = false;
     }
 
@@ -196,12 +207,12 @@ export function dragElement(map, feature, onUpdate) {
   };
 }
 
-export const handleMoveElement = (map, targetPolygon) => {
+export const handleMoveElement = (map, targetPolygon, sourceId) => {
   if (!targetPolygon) return;
 
   try {
     dragElement(map, targetPolygon, (movedFeature) => {
-      Selection.setSelectedData(map, movedFeature);
+      Selection.setSelectedData(map, movedFeature, sourceId);
     });
   } catch (error) {
     console.log(error);

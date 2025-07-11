@@ -12,6 +12,8 @@ import { selectedElement } from "../../core/actions/selectedElement";
 import { MapContext } from "../../contexts/mapContext";
 import { use } from "react";
 import { Selection } from "../../core/actions/selection";
+import { LayerOrdering } from "../../core/actions/layerOrdering";
+import { AppGlobals } from "../../core/globals";
 
 export const BasicComponent = ({ drawRef, mapRef }) => {
   const [color, setColor] = useState("#787878");
@@ -19,21 +21,27 @@ export const BasicComponent = ({ drawRef, mapRef }) => {
   const [label, setLabel] = useState("");
 
   const { selectedElement, setSelectedElement } = useContext(MapContext);
+  const storedData = AppGlobals.getElements();
 
   const updateFeatureProperty = (property, value, mapRef) => {
-    if (!selectedElement) return;
+    const element = storedData?.find((el) => el.id === selectedElement.id);
+    if (!element) return;
 
     const map = mapRef.current;
     const updated = {
-      ...selectedElement,
+      ...element,
       properties: {
-        ...selectedElement.properties,
+        ...element.properties,
         [property]: value,
       },
     };
 
+    const sourceId = LayerOrdering.findFeatureSourceId(map, element);
+
     // Update map source using Selection class
-    Selection.setSelectedData(map, updated);
+    Selection.setSelectedData(map, updated, sourceId);
+
+    AppGlobals.setDataToStore(updated);
 
     // Update local storage
     updateFeatureInLocalStorage(updated);
@@ -47,12 +55,6 @@ export const BasicComponent = ({ drawRef, mapRef }) => {
     const newColor = e.target.value;
     setColor(newColor);
     updateFeatureProperty("color", newColor || "#787878", mapRef);
-
-    const layerId = `layer-${selectedElement.id}`;
-    const map = mapRef.current;
-    if (map.getLayer(layerId)) {
-      map.setPaintProperty(layerId, "fill-color", newColor || "#787878");
-    }
   };
 
   const updateSelectedFeatureLabel = (label, mapRef) => {
@@ -62,7 +64,6 @@ export const BasicComponent = ({ drawRef, mapRef }) => {
   const handleUploadImage = async (e) => {
     const file = e.target.files?.[0];
     const map = mapRef.current;
-    const draw = drawRef.current;
     if (!file || !map) return;
 
     const reader = new FileReader();
@@ -75,32 +76,17 @@ export const BasicComponent = ({ drawRef, mapRef }) => {
     reader.readAsDataURL(file);
   };
 
-  function moveLayerUp(map, layerId) {
-    const layerOrder = map.getStyle().layers.map((l) => l.id);
-    const index = layerOrder.indexOf(layerId);
-    if (index <= 0) return;
-
-    const aboveLayerId = layerOrder[index + 1];
-
-    map.moveLayer(layerId, aboveLayerId);
-
-    // Đổi chỗ trong mảng
-    [layerOrder[index - 1], layerOrder[index]] = [
-      layerOrder[index],
-      layerOrder[index - 1],
-    ];
-  }
-
   useEffect(() => {
-    if (!selectedElement) {
+    const element = storedData?.find((el) => el.id === selectedElement?.id);
+    if (!element) {
       setColor("#787878");
       setHeight("");
       setLabel("");
       return;
     }
-    setColor(selectedElement.properties.color);
-    setHeight(selectedElement.properties.height);
-    setLabel(selectedElement.properties.label);
+    setColor(element.properties.color);
+    setHeight(element.properties.height);
+    setLabel(element.properties.label);
   }, [selectedElement]);
 
   const logdata = () => {
@@ -114,11 +100,21 @@ export const BasicComponent = ({ drawRef, mapRef }) => {
     // map.moveLayer(layerId, aboveLayerId);
     // console.log("selectedElement", selectedElement);
 
-    console.log(loadFromLocalStorage());
+    // console.log(loadFromLocalStorage());
+
+    console.log("AppGlobals.getElements()", AppGlobals.getElements());
   };
 
   return (
     <Form>
+      <SubmitButton
+        type="button"
+        onClick={logdata}
+        style={{ marginBottom: "10px" }}
+      >
+        LogData
+      </SubmitButton>
+
       <FormGroup>
         <Label htmlFor="label">Label:</Label>
         <Input
@@ -170,11 +166,6 @@ export const BasicComponent = ({ drawRef, mapRef }) => {
           style={{ display: "none" }}
         />
       </FormGroup>
-
-      <button type="button" onClick={logdata}>
-        {" "}
-        Save
-      </button>
     </Form>
   );
 };
