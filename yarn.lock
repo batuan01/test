@@ -2483,6 +2483,14 @@
     "@types/geojson" "^7946.0.10"
     tslib "^2.8.1"
 
+"@turf/distance@^6.5.0":
+  version "6.5.0"
+  resolved "https://registry.npmjs.org/@turf/distance/-/distance-6.5.0.tgz"
+  integrity sha512-xzykSLfoURec5qvQJcfifw/1mJa+5UwByZZ5TZ8iaqjGYN0vomhV9aiSLeYdUGtYRESZ+DYC/OzY+4RclZYgMg==
+  dependencies:
+    "@turf/helpers" "^6.5.0"
+    "@turf/invariant" "^6.5.0"
+
 "@turf/distance@^7.2.0":
   version "7.2.0"
   resolved "https://registry.npmjs.org/@turf/distance/-/distance-7.2.0.tgz"
@@ -2515,6 +2523,14 @@
     "@turf/helpers" "^7.2.0"
     "@types/geojson" "^7946.0.10"
     tslib "^2.8.1"
+
+"@turf/explode@^6.5.0":
+  version "6.5.0"
+  resolved "https://registry.npmjs.org/@turf/explode/-/explode-6.5.0.tgz"
+  integrity sha512-6cSvMrnHm2qAsace6pw9cDmK2buAlw8+tjeJVXMfMyY+w7ZUi1rprWMsY92J7s2Dar63Bv09n56/1V7+tcj52Q==
+  dependencies:
+    "@turf/helpers" "^6.5.0"
+    "@turf/meta" "^6.5.0"
 
 "@turf/explode@^7.2.0":
   version "7.2.0"
@@ -2567,6 +2583,11 @@
     "@turf/invariant" "^7.2.0"
     "@types/geojson" "^7946.0.10"
 
+"@turf/helpers@^6.5.0":
+  version "6.5.0"
+  resolved "https://registry.npmjs.org/@turf/helpers/-/helpers-6.5.0.tgz"
+  integrity sha512-VbI1dV5bLFzohYYdgqwikdMVpe7pJ9X3E+dlr425wa2/sMJqYDhTO++ec38/pcPvPE6oD9WEEeU3Xu3gza+VPw==
+
 "@turf/helpers@^7.2.0":
   version "7.2.0"
   resolved "https://registry.npmjs.org/@turf/helpers/-/helpers-7.2.0.tgz"
@@ -2615,6 +2636,13 @@
     "@types/geojson" "^7946.0.10"
     polyclip-ts "^0.16.8"
     tslib "^2.8.1"
+
+"@turf/invariant@^6.5.0":
+  version "6.5.0"
+  resolved "https://registry.npmjs.org/@turf/invariant/-/invariant-6.5.0.tgz"
+  integrity sha512-Wv8PRNCtPD31UVbdJE/KVAWKe7l6US+lJItRR/HOEW3eh+U/JwRCSUl/KZ7bmjM/C+zLNoreM2TU6OoLACs4eg==
+  dependencies:
+    "@turf/helpers" "^6.5.0"
 
 "@turf/invariant@^7.2.0":
   version "7.2.0"
@@ -2810,6 +2838,13 @@
     "@types/geojson" "^7946.0.10"
     polyclip-ts "^0.16.8"
     tslib "^2.8.1"
+
+"@turf/meta@^6.5.0":
+  version "6.5.0"
+  resolved "https://registry.npmjs.org/@turf/meta/-/meta-6.5.0.tgz"
+  integrity sha512-RrArvtsV0vdsCBegoBtOalgdSOfkBrTJ07VkpiCnq/491W67hnMWmDu7e6Ztw0C3WldRYTXkg3SumfdzZxLBHA==
+  dependencies:
+    "@turf/helpers" "^6.5.0"
 
 "@turf/meta@^7.2.0":
   version "7.2.0"
@@ -6651,6 +6686,16 @@ geojson-equality-ts@^1.0.2:
   integrity sha512-h3Ryq+0mCSN/7yLs0eDgrZhvc9af23o/QuC4aTiuuzP/MRCtd6mf5rLsLRY44jX0RPUfM8c4GqERQmlUxPGPoQ==
   dependencies:
     "@types/geojson" "^7946.0.14"
+
+geojson-path-finder@^2.0.2:
+  version "2.0.2"
+  resolved "https://registry.npmjs.org/geojson-path-finder/-/geojson-path-finder-2.0.2.tgz"
+  integrity sha512-mNs/vPRQpnOfWvKwWC+q1sWliWMIZPhj11oTf1TmLGDoEVlAWenhbiaDKrTioLViD4ndGpWUyqd+BxQp60Aqjg==
+  dependencies:
+    "@turf/distance" "^6.5.0"
+    "@turf/explode" "^6.5.0"
+    "@turf/helpers" "^6.5.0"
+    tinyqueue "^2.0.3"
 
 geojson-polygon-self-intersections@^1.2.1:
   version "1.2.1"

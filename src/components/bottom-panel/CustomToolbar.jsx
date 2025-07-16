@@ -3,10 +3,9 @@ import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { ImageElement } from "../../core/actions/image";
+import { LoadData } from "../../core/actions/loadData";
 import { DEFAULT_COORDINATES } from "../../core/utils";
 import { Icons } from "../../icons/icon";
-import { DrawElement } from "../../core/actions/draw";
-import { LoadData } from "../../core/actions/loadData";
 
 export default function CustomToolbar({ drawRef, mapRef, isPathRef }) {
   const navigate = useNavigate();
@@ -66,6 +65,10 @@ export default function CustomToolbar({ drawRef, mapRef, isPathRef }) {
 
       case "circle":
         terraDraw.setMode("circle");
+        break;
+
+      case "rectangle":
+        terraDraw.setMode("angled-rectangle");
         break;
 
       case "path":
@@ -167,6 +170,12 @@ export default function CustomToolbar({ drawRef, mapRef, isPathRef }) {
             onClick={() => handleSelect("circle")}
           >
             <Icons.Circle />
+          </IconButton>
+          <IconButton
+            $selected={selectedControl === "rectangle"}
+            onClick={() => handleSelect("rectangle")}
+          >
+            <Icons.Rectangle />
           </IconButton>
           <IconButton
             as="label"

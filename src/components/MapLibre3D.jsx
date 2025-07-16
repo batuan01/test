@@ -1,14 +1,16 @@
 // Map3DView.tsx
 import "maplibre-gl/dist/maplibre-gl.css";
-import { useEffect, useRef } from "react";
+import { useContext, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
+import { MapContext } from "../contexts/mapContext";
 import { ConvertData } from "../core/3d/convertData";
 import { LabelElements } from "../core/3d/label";
 import { LoadData3D } from "../core/3d/loadData3D";
+import { SelectedElement } from "../core/3d/selectedElement";
 import { createMap } from "../core/actions/map";
-import booths from "../data/boothsjson.json";
-import { ZOOM_OVERVIEW } from "../core/utils";
+import { loadFromLocalStorage, ZOOM_OVERVIEW } from "../core/utils";
+import { PropertiesComponent } from "./3d/left-panel/PropertiesComponent";
 import CustomToolbar from "./bottom-panel/CustomToolbar";
 
 // const booths = require("../data/booths.geojson");
@@ -17,9 +19,10 @@ const MapLibre3D = () => {
   const navigate = useNavigate();
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
+  const { selectedElement, setSelectedElement } = useContext(MapContext);
 
-  // const storedData = loadFromLocalStorage();
-  const storedData = booths;
+  const storedData = loadFromLocalStorage();
+  // const storedData = booths;
 
   const polygonFeatures = ConvertData.filterPolygonElements(
     storedData.features
@@ -34,23 +37,26 @@ const MapLibre3D = () => {
       dragRotate: true,
       pitch: 45,
       bearing: -33.5,
+      zoom: 17.1,
     });
     mapRef.current = map;
+
+    SelectedElement.getSelectedData({ map, setSelectedElement });
 
     map.on("load", () => {
       LabelElements.loadAllImagesLabel(map, labelFeatures);
 
       LoadData3D.updateElementsByZoom(map, storedData);
 
-      let wasAboveThreshold = map.getZoom() >= ZOOM_OVERVIEW;
+      let wasAboveThreshold = false; // Khởi tạo biến
+
       map.on("zoom", () => {
         const currentZoom = map.getZoom();
         const isAboveThreshold = currentZoom >= ZOOM_OVERVIEW;
 
         if (isAboveThreshold !== wasAboveThreshold) {
-          // Chỉ gọi khi vượt qua ngưỡng 17
           LoadData3D.updateElementsByZoom(map, storedData);
-          wasAboveThreshold = isAboveThreshold;
+          wasAboveThreshold = isAboveThreshold; // Cập nhật trạng thái
         }
       });
     });
@@ -67,6 +73,7 @@ const MapLibre3D = () => {
     // const geojson = draw.getFeatures();
     // console.log("geojson", geojson);
     console.log(mapRef.current.getStyle());
+    // console.log("AppGlobals.getElements()", AppGlobals.getElements());
   };
 
   return (
@@ -79,6 +86,8 @@ const MapLibre3D = () => {
           Save
         </button>
       </FormProperty>
+
+      <PropertiesComponent mapRef={mapRef} />
 
       <CustomToolbar mapRef={mapRef} />
     </div>

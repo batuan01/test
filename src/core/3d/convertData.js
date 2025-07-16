@@ -6,20 +6,21 @@ export class ConvertData {
     if (!data.length) return [];
     const zoom = map.getZoom();
 
-    const features =
-      zoom < ZOOM_OVERVIEW
-        ? data.filter((f) => f.properties.layer === "overview")
-        : data.filter((f) => f.properties.layer !== "overview");
+    const overviewFeatures = this.dataOverview(data);
+    const detailFeatures = this.dataDetail(data);
+
+    if (overviewFeatures.length === 0) return data;
+    const features = zoom < ZOOM_OVERVIEW ? overviewFeatures : detailFeatures;
 
     return features;
   }
 
-  static dataOverview(data){
+  static dataOverview(data) {
     if (!data.length) return [];
     return data.filter((f) => f.properties.layer === "overview");
   }
 
-  static dataDetail(data){
+  static dataDetail(data) {
     if (!data.length) return [];
     return data.filter((f) => f.properties.layer !== "overview");
   }
@@ -45,5 +46,21 @@ export class ConvertData {
         geometry: center.geometry,
       };
     });
+  }
+
+  static convertMultiLineToLine(pathElement) {
+    const lineStrings = pathElement.geometry.coordinates.map((line) => ({
+      type: "Feature",
+      geometry: {
+        type: "LineString",
+        coordinates: line,
+      },
+      properties: {},
+    }));
+
+    return {
+      type: "FeatureCollection",
+      features: lineStrings,
+    };
   }
 }

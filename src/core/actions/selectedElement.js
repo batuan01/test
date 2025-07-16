@@ -136,12 +136,16 @@ export class SelectedSelection {
       }
 
       if (targetPolygon) {
-        if (!targetPolygon.geometry.type === "MultiLineString") {
+        if (!(targetPolygon.geometry.type === "MultiLineString")) {
           RotateController.addHandle(map, targetPolygon);
 
           RotateController.setup(map, feature, (rotated) => {
             Selection.setSelectedData(map, rotated, sourceId); // cập nhật lại vào source
           });
+        } else {
+          BoundingBox.clearBoundingBox(map, "selected");
+          BoundingBox.clearBoundingBox(map, "hover");
+          RotateController.destroy(map);
         }
         BoundingBox.drawBoundingBox(targetPolygon, map, "selected");
         HandleDragging.newHandlesPoint(map, targetPolygon);

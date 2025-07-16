@@ -7,13 +7,14 @@ export const createMap = ({
   dragRotate,
   pitch,
   bearing,
+  zoom,
 }) => {
   const map = new maplibregl.Map({
     container: mapContainer,
     style:
       "https://api.maptiler.com/maps/fefc1891-4e0d-4102-a51f-09768f839b85/style.json?key=S1qTEATai9KydkenOF6W",
     center: DEFAULT_COORDINATES,
-    zoom: 16,
+    zoom: zoom ?? 16,
     antialias: true,
     hash: "map",
     // minZoom: 15, // 👈 Zoom tối thiểu

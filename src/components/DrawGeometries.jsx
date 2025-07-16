@@ -8,14 +8,12 @@ import { MapContext } from "../contexts/mapContext";
 import { BoundingBox } from "../core/actions/boundingBox";
 import { DrawElement } from "../core/actions/draw";
 import { Keyboard } from "../core/actions/key";
-import { LayerOrdering } from "../core/actions/layerOrdering";
 import { LoadData } from "../core/actions/loadData";
 import { createMap } from "../core/actions/map";
-import { showContextMenu } from "../core/actions/rightMouse";
+import { ContextMenuOption } from "../core/actions/rightMouse";
 import { SelectedSelection } from "../core/actions/selectedElement";
-import { AppGlobals } from "../core/globals";
+import { BasicComponent } from "./2d/right-panel/BasicComponent";
 import CustomToolbar from "./bottom-panel/CustomToolbar";
-import { BasicComponent } from "./right-panel/BasicComponent";
 
 const DrawGeometries = () => {
   const navigate = useNavigate();
@@ -58,30 +56,7 @@ const DrawGeometries = () => {
       BoundingBox.hoverBBoxSelected(selectedElement, mapRef.current);
     });
 
-    map.on("contextmenu", (e) => {
-      const clickedLngLat = [e.lngLat.lng, e.lngLat.lat];
-      const storedData = AppGlobals.getElements();
-      if (!storedData?.length) return;
-
-      const feature = SelectedSelection.findFeatureAtPoint(
-        clickedLngLat,
-        storedData
-      );
-
-      showContextMenu(
-        e.point,
-        () => {
-          if (feature) {
-            LayerOrdering.bringForward(map, feature);
-          }
-        },
-        () => {
-          if (feature) {
-            LayerOrdering.sendBackward(map, feature);
-          }
-        }
-      );
-    });
+    ContextMenuOption.initRightMouse(map);
 
     return () => {
       map.remove();
@@ -126,25 +101,6 @@ const FormProperty = styled.div`
   right: 10px;
   width: 300px;
   text-align: center;
-`;
-
-const SubmitButton = styled.button`
-  padding: 0.6rem 1.2rem;
-  background: #007bff;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-  cursor: pointer;
-
-  &:hover {
-    background: #0056b3;
-  }
-
-  a {
-    text-decoration: none;
-    color: white;
-  }
 `;
 
 const ButtonShow = styled.button`

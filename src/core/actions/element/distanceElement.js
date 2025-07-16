@@ -1,3 +1,5 @@
+import * as turf from "@turf/turf";
+
 export class DistanceElement {
   /**
    * Tính khoảng cách Euclidean giữa 2 điểm
@@ -63,5 +65,25 @@ export class DistanceElement {
     }
 
     return null;
+  }
+
+  static getFirstPointInPolygon(polygonFeature, pathFeature) {
+    const polygon = turf.polygon(polygonFeature.geometry.coordinates);
+    const geometry = pathFeature.geometry;
+
+    for (let i = 0; i < geometry.coordinates.length; i++) {
+      const line = geometry.coordinates[i];
+
+      for (let j = 0; j < line.length; j++) {
+        const coord = line[j];
+        const pt = turf.point(coord);
+
+        if (turf.booleanPointInPolygon(pt, polygon)) {
+          return coord;
+        }
+      }
+    }
+
+    return null; // Không có điểm nào nằm trong polygon
   }
 }

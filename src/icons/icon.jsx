@@ -148,4 +148,25 @@ export const Icons = {
       </g>
     </svg>
   ),
+  Rectangle: () => (
+    <svg
+      fill="#000000"
+      height="20px"
+      width="20px"
+      version="1.1"
+      id="Layer_1"
+      viewBox="0 0 512 512"
+      enableBackground="new 0 0 512 512"
+    >
+      <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
+      <g
+        id="SVGRepo_tracerCarrier"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      ></g>
+      <g id="SVGRepo_iconCarrier">
+        <path d="M0,0v512h512V0H0z M465.5,465.5H46.5V46.5h418.9V465.5z"></path>
+      </g>
+    </svg>
+  ),
 };

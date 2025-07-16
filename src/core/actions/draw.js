@@ -3,7 +3,9 @@ import { AppGlobals } from "../globals";
 import {
   generateUUID,
   loadFromLocalStorage,
+  newDataToLocalStorage,
   saveToLocalStorage,
+  updateFeatureInLocalStorage,
 } from "../utils";
 import { LoadData } from "./loadData";
 import { DistanceElement } from "./element/distanceElement";
@@ -250,6 +252,7 @@ export class DrawElement {
           };
           LoadData.AddFeature(geojson, map, index);
           AppGlobals.setDataToStore(geojson.features[0]);
+          newDataToLocalStorage(geojson.features[0]);
         } else {
           // 👈 Nếu đã có source Path → thêm đoạn vào MultiLineString hiện tại
           const sourceData = lastSource._data || lastSource._options?.data;
@@ -290,6 +293,7 @@ export class DrawElement {
             // Cập nhật dữ liệu lên map và vào store
             lastSource.setData(sourceData);
             AppGlobals.setDataToStore(feature);
+            updateFeatureInLocalStorage(feature);
           }
         }
       });

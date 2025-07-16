@@ -1,4 +1,5 @@
 import { LoadData } from "../actions/loadData";
+import { AppGlobals } from "../globals";
 import { ZOOM_OVERVIEW } from "../utils";
 import { ConvertData } from "./convertData";
 import { LabelElements } from "./label";
@@ -24,6 +25,9 @@ export class LoadData3D {
       this.AddFeature3D(group, map, group.features[0].id, beforeLayerId);
     });
 
+    // cap nhật data hien tai
+    AppGlobals.setElements(zoomFeatures);
+
     // Cập nhật label
     LabelElements.textLabels(map);
     LabelElements.imageLabels(map);
@@ -35,8 +39,11 @@ export class LoadData3D {
     this.updateLabelSource(map, "source-labels-text", labelFeatures);
     this.updateLabelSource(map, "source-labels-image", labelFeatures);
 
+    if (splitOverview.length == 0) return;
+
     // Ẩn hoặc xoá layer/source dựa theo zoom
     const groupsToRemove = zoom > ZOOM_OVERVIEW ? splitOverview : splitDetail;
+    console.log("groupsToRemove", groupsToRemove);
     groupsToRemove.forEach((group) => {
       const id = group.features[0].id;
       this.removeSourceAndLayer(map, `source-${id}`, `layer-${id}`);

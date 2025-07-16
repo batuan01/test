@@ -1,17 +1,18 @@
 import { useContext, useEffect, useState } from "react";
 import styled from "styled-components";
-import { MapContext } from "../../contexts/mapContext";
-import { ImageElement } from "../../core/actions/image";
-import { LayerOrdering } from "../../core/actions/layerOrdering";
-import { Selection } from "../../core/actions/selection";
-import { AppGlobals } from "../../core/globals";
-import { updateFeatureInLocalStorage } from "../../core/utils";
+import { MapContext } from "../../../contexts/mapContext";
+import { ImageElement } from "../../../core/actions/image";
+import { LayerOrdering } from "../../../core/actions/layerOrdering";
+import { Selection } from "../../../core/actions/selection";
+import { AppGlobals } from "../../../core/globals";
+import { updateFeatureInLocalStorage } from "../../../core/utils";
 
 export const BasicComponent = ({ drawRef, mapRef }) => {
   const [color, setColor] = useState("#787878");
   const [height, setHeight] = useState("");
   const [label, setLabel] = useState("");
   const [layer, setLayer] = useState("");
+  const [highlight, setHighlight] = useState("");
 
   const { selectedElement, setSelectedElement } = useContext(MapContext);
   const storedData = AppGlobals.getElements();
@@ -60,6 +61,10 @@ export const BasicComponent = ({ drawRef, mapRef }) => {
     updateFeatureProperty("layer", newLayer, mapRef);
   };
 
+  const updateSelectedFeatureHighlight = (highlight, mapRef) => {
+    updateFeatureProperty("labelImage", highlight, mapRef);
+  };
+
   useEffect(() => {
     const element = storedData?.find((el) => el.id === selectedElement?.id);
     if (!element) {
@@ -67,12 +72,14 @@ export const BasicComponent = ({ drawRef, mapRef }) => {
       setHeight("");
       setLabel("");
       setLayer("");
+      setHighlight("");
       return;
     }
     setColor(element.properties?.color);
     setHeight(element.properties?.height);
     setLabel(element.properties?.label);
     setLayer(element.properties?.layer);
+    setHighlight(element.properties?.labelImage);
   }, [selectedElement]);
 
   const logdata = () => {
@@ -148,13 +155,28 @@ export const BasicComponent = ({ drawRef, mapRef }) => {
         <Label htmlFor="color">Color:</Label>
         <ColorInput id="color" value={color} onChange={handleChangeColor} />
       </FormGroup>
+
+      <FormGroup>
+        <Label htmlFor="highlight">Highlight:</Label>
+        <Input
+          type="string"
+          id="highlight"
+          placeholder="Highlight Image..."
+          value={highlight}
+          onChange={(e) => {
+            const value = e.target.value;
+            setHighlight(value); // 👈 cập nhật state để tránh cảnh báo
+            updateSelectedFeatureHighlight(value, mapRef); // 👈 cập nhật dữ liệu feature
+          }}
+        />
+      </FormGroup>
     </Form>
   );
 };
 
 const Form = styled.form`
-  max-width: 400px;
-  padding: 1.5rem;
+  max-width: 500px;
+  padding: 1rem;
   background: #f9f9f9;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -165,6 +187,7 @@ const FormGroup = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
+  justify-items: start;
 `;
 
 const Label = styled.label`
@@ -172,7 +195,7 @@ const Label = styled.label`
   margin-bottom: 0.5rem;
   font-weight: 600;
   color: #333;
-  width: 50px;
+  width: 70px;
 `;
 
 const Input = styled.input`
