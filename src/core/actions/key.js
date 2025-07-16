@@ -1,9 +1,13 @@
-import { clearLocalStorage, removeFeatureFromLocalStorage } from "../utils";
+import { AppGlobals } from "../globals";
+import { removeFeatureFromLocalStorage } from "../utils";
+import { BoundingBox } from "./boundingBox";
+import { HandleDragging } from "./handlesPoint";
+import { LayerOrdering } from "./layerOrdering";
+import { RotateController } from "./rotateElement";
 
 export class Keyboard {
-  static keyDown(mapContainer, drawRef, mapRef, selectedElement) {
-    const map = mapRef.current;
-
+  static selectedMultipleElements = [];
+  static keyDown(mapContainer, mapRef, selectedElement) {
     const handleKeyDown = (e) => {
       const mapEl = mapContainer.current;
       const activeEl = document.activeElement;
@@ -14,15 +18,28 @@ export class Keyboard {
       // Ctrl + A: chọn tất cả
       if (e.ctrlKey && e.key === "a") {
         e.preventDefault();
-        this.selectAllFeatures(drawRef);
+        this.selectedMultipleElements = AppGlobals.getElements();
       }
 
       // Backspace: xóa hết
       if (e.key === "Backspace") {
         e.preventDefault();
+        const map = mapRef.current;
         if (selectedElement) {
           clearAllFeatures(map, [selectedElement]);
+          AppGlobals.removeDataById(selectedElement.id);
         }
+
+        if (this.selectedMultipleElements.length) {
+          clearAllFeatures(map, this.selectedMultipleElements);
+          this.selectedMultipleElements = [];
+          AppGlobals.setElements([]);
+        }
+
+        HandleDragging.removeHandlesPoint(map);
+        BoundingBox.clearBoundingBox(map, "selected");
+        BoundingBox.clearBoundingBox(map, "hover");
+        RotateController.destroy(map);
       }
     };
 
@@ -31,38 +48,20 @@ export class Keyboard {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }
-
-  static selectAllFeatures(drawRef) {
-    const draw = drawRef.current;
-    if (!draw) return;
-
-    const terraDraw = draw.getTerraDrawInstance();
-    const allFeatures = draw.getFeatures().features;
-
-    if (!allFeatures.length) return;
-
-    // Lấy danh sách ID các features
-    const ids = allFeatures.map((f) => f.id);
-
-    // Chuyển sang chế độ select
-    terraDraw.setMode("select", {
-      featureIds: ids,
-    });
-  }
 }
 
 export const clearAllFeatures = (map, features) => {
   if (!features.length) return;
 
   features.forEach((f) => {
-    const sourceId = `source-${f.id}`;
-    const layerId = `layer-${f.id}`;
-    const outlineId = `outline-${f.id}`;
+    const currentSourceId = LayerOrdering.findFeatureSourceId(map, f);
 
-    if (map.getLayer(outlineId)) map.removeLayer(outlineId);
-    if (map.getLayer(layerId)) map.removeLayer(layerId);
-    if (map.getSource(sourceId)) map.removeSource(sourceId);
-
-    removeFeatureFromLocalStorage(f.id);
+    if (f.geometry.type !== "Image") {
+      LayerOrdering.updateDataAftermove(map, f, currentSourceId);
+      removeFeatureFromLocalStorage(f.id);
+    } else {
+      LayerOrdering.removeLayer(map, f.id);
+      removeFeatureFromLocalStorage(f.id);
+    }
   });
 };

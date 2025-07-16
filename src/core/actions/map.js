@@ -1,4 +1,5 @@
 import maplibregl from "maplibre-gl";
+import { DEFAULT_COORDINATES } from "../utils";
 
 export const createMap = ({
   mapContainer,
@@ -11,12 +12,12 @@ export const createMap = ({
     container: mapContainer,
     style:
       "https://api.maptiler.com/maps/fefc1891-4e0d-4102-a51f-09768f839b85/style.json?key=S1qTEATai9KydkenOF6W",
-    center: [139.7977668232757, 35.63168006521393],
+    center: DEFAULT_COORDINATES,
     zoom: 16,
     antialias: true,
     hash: "map",
-    minZoom: 15, // 👈 Zoom tối thiểu
-    maxZoom: 18.5, // 👈 Zoom tối đa
+    // minZoom: 15, // 👈 Zoom tối thiểu
+    // maxZoom: 18.5, // 👈 Zoom tối đa
     pitchWithRotate: pitchWithRotate ?? false, // Không cho xoay bằng chuột phải + kéo
     dragRotate: dragRotate ?? false, // Không cho xoay bằng chuột
     touchPitch: false, // Không cho xoay bằng 2 ngón tay

@@ -232,7 +232,7 @@ export class LayerOrdering {
   };
 
   static findFeatureSourceId(map, feature) {
-    if (!feature) return null;
+    if (!feature || !map || map.getStyle().sources.length === 0) return null;
     const allSources = Object.keys(map.getStyle().sources).filter((s) =>
       s.startsWith("source-")
     );
@@ -289,6 +289,7 @@ export class LayerOrdering {
   static updateDataAftermove(map, feature, currentSourceId) {
     if (feature.geometry.type !== "Image") {
       const fromSource = map.getSource(currentSourceId);
+      if (!fromSource) return;
       const fromData = fromSource._data || fromSource._options?.data;
 
       if (!fromData?.features) return;

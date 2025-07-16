@@ -1,37 +1,28 @@
 // MapDraw.tsx
-import React, { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 
 // @ts-ignore: TerraDraw is a UMD global so we import it this way
-import { createMap } from "../core/actions/map";
-import { DrawElement } from "../core/actions/draw";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import { BasicComponent } from "./right-panel/BasicComponent";
-import {
-  clearAllFeatures,
-  Keyboard,
-  selectAllFeatures,
-} from "../core/actions/key";
-import { calculateImageBounds, loadFromLocalStorage } from "../core/utils";
-import { LoadData } from "../core/actions/loadData";
-import * as turf from "@turf/turf";
-import {
-  getSelectedElement,
-  SelectedSelection,
-} from "../core/actions/selectedElement";
 import { MapContext } from "../contexts/mapContext";
-import { dragElement, handleMoveElement } from "../core/actions/dragElement";
-import { HandleDragging } from "../core/actions/handlesPoint";
 import { BoundingBox } from "../core/actions/boundingBox";
-import { showContextMenu } from "../core/actions/rightMouse";
+import { DrawElement } from "../core/actions/draw";
+import { Keyboard } from "../core/actions/key";
 import { LayerOrdering } from "../core/actions/layerOrdering";
+import { LoadData } from "../core/actions/loadData";
+import { createMap } from "../core/actions/map";
+import { showContextMenu } from "../core/actions/rightMouse";
+import { SelectedSelection } from "../core/actions/selectedElement";
 import { AppGlobals } from "../core/globals";
+import CustomToolbar from "./bottom-panel/CustomToolbar";
+import { BasicComponent } from "./right-panel/BasicComponent";
 
 const DrawGeometries = () => {
   const navigate = useNavigate();
   const mapRef = useRef(null);
   const mapContainer = useRef(null);
   const drawRef = useRef(null);
+  const isPathRef = useRef(false);
   const [hide, setHide] = useState(true);
 
   const { selectedElement, setSelectedElement } = useContext(MapContext);
@@ -46,7 +37,7 @@ const DrawGeometries = () => {
     map.doubleClickZoom.disable();
     // map.dragPan.disable();
 
-    DrawElement.Terradraw(map, drawRef);
+    DrawElement.Terradraw(map, drawRef, isPathRef);
 
     map.on("click", (e) => {
       // const selected = drawRef.current.getFeatures(true).features;
@@ -98,13 +89,18 @@ const DrawGeometries = () => {
   }, []);
 
   useEffect(() => {
-    Keyboard.keyDown(mapContainer, drawRef, mapRef, selectedElement);
+    Keyboard.keyDown(mapContainer, mapRef, selectedElement);
   }, [selectedElement]);
 
+  // Hide context menu when click outside
   document.addEventListener("click", () => {
     const existing = document.getElementById("map-context-menu");
     if (existing) existing.remove();
   });
+
+  useEffect(() => {
+    setHide(!selectedElement);
+  }, [selectedElement]);
 
   return (
     <div style={{ position: "relative", height: "100vh" }}>
@@ -113,10 +109,11 @@ const DrawGeometries = () => {
       <ButtonShow onClick={() => setHide(!hide)}>Show</ButtonShow>
       {!hide && (
         <FormProperty>
-          <SubmitButton onClick={() => navigate("/3d")}>3D</SubmitButton>
           <BasicComponent drawRef={drawRef} mapRef={mapRef} />
         </FormProperty>
       )}
+
+      <CustomToolbar drawRef={drawRef} mapRef={mapRef} isPathRef={isPathRef} />
     </div>
   );
 };
@@ -127,7 +124,6 @@ const FormProperty = styled.div`
   position: absolute;
   top: 40px;
   right: 10px;
-  padding: 15px;
   width: 300px;
   text-align: center;
 `;

@@ -1,17 +1,10 @@
 import * as turf from "@turf/turf";
-import {
-  deepEqual,
-  loadFromLocalStorage,
-  saveToLocalStorage,
-  updateFeatureInLocalStorage,
-} from "../utils";
-import { BoundingBox } from "./boundingBox";
-import { Selection } from "./selection";
-import { HandleDragging } from "./handlesPoint";
-import { SelectedSelection } from "./selectedElement";
 import { AppGlobals } from "../globals";
-import { RotateController } from "./rotateElement";
+import { BoundingBox } from "./boundingBox";
+import { HandleDragging } from "./handlesPoint";
 import { ImageElement } from "./image";
+import { RotateController } from "./rotateElement";
+import { Selection } from "./selection";
 
 /**
  * Kéo polygon theo con trỏ – mượt 60 fps

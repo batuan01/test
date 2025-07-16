@@ -31,6 +31,7 @@ export class RotateController {
     if (!polygonFeature || !map) return;
 
     const bboxPolygons = BoundingBox.getMinimumRotatedBBox(polygonFeature);
+    if (!bboxPolygons) return;
     const coords = bboxPolygons.geometry.coordinates[0];
     const firstPoint = coords[0];
     const secondPoint = coords[1];

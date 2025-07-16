@@ -3,10 +3,12 @@ import { loadFromLocalStorage } from "../utils";
 import { ImageElement } from "./image";
 import { AppGlobals } from "../globals";
 import { SelectedSelection } from "./selectedElement";
+import { isPathElement } from "./element/typeChecks";
 
 export class BoundingBox {
   static drawBoundingBox = (feature, map, layerType = "hover") => {
     if (!map || !feature) return;
+    if (isPathElement(feature)) return;
 
     const bboxPolygon = this.getMinimumRotatedBBox(feature);
     if (!bboxPolygon) return;
@@ -79,6 +81,8 @@ export class BoundingBox {
         clickedLngLat,
         storedData
       );
+
+      if (isPathElement(hoveredPolygon)) return;
 
       if (hoveredPolygon) {
         const polygonFeature =

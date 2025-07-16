@@ -13,15 +13,20 @@ export class HandleDragging {
     if (!feature?.geometry) return [];
 
     const { type, coordinates } = feature.geometry;
-    let points = [];
 
     switch (type) {
-      case "Polygon":
-        points = coordinates[0]; // outer ring
-        break;
+      case "Polygon": {
+        const points = coordinates[0].slice(0, -1); // bỏ điểm đóng vòng
+        return points.map((coord, idx) => ({
+          type: "Feature",
+          id: `${feature.id}-handle-${idx}`,
+          geometry: { type: "Point", coordinates: coord },
+          properties: { type: "handle", parentId: feature.id, index: idx },
+        }));
+      }
 
-      case "Image":
-        points = [...coordinates];
+      case "Image": {
+        let points = [...coordinates];
         if (
           points.length &&
           (points[0][0] !== points.at(-1)[0] ||
@@ -29,42 +34,63 @@ export class HandleDragging {
         ) {
           points.push(points[0]);
         }
-        break;
+        return points.slice(0, -1).map((coord, idx) => ({
+          type: "Feature",
+          id: `${feature.id}-handle-${idx}`,
+          geometry: { type: "Point", coordinates: coord },
+          properties: { type: "handle", parentId: feature.id, index: idx },
+        }));
+      }
 
-      case "LineString":
-        points = [...coordinates, coordinates[0]];
-        break;
+      case "LineString": {
+        const points = coordinates;
+        return points.map((coord, idx) => ({
+          type: "Feature",
+          id: `${feature.id}-handle-${idx}`,
+          geometry: { type: "Point", coordinates: coord },
+          properties: { type: "handle", parentId: feature.id, index: idx },
+        }));
+      }
 
-      case "MultiPolygon":
-        // Lấy tất cả các đỉnh của tất cả polygon con
-        points = coordinates.flatMap((poly) => poly[0]);
-        break;
+      case "MultiLineString": {
+        return coordinates.flatMap((line, lineIndex) =>
+          line.map((coord, pointIndex) => ({
+            type: "Feature",
+            id: `${feature.id}-handle-${lineIndex}-${pointIndex}`,
+            geometry: { type: "Point", coordinates: coord },
+            properties: {
+              type: "handle",
+              parentId: feature.id,
+              index: { lineIndex, pointIndex },
+            },
+          }))
+        );
+      }
 
-      case "MultiLineString":
-        points = coordinates.flat();
-        break;
+      case "MultiPolygon": {
+        const points = coordinates.flatMap((poly) => poly[0].slice(0, -1));
+        return points.map((coord, idx) => ({
+          type: "Feature",
+          id: `${feature.id}-handle-${idx}`,
+          geometry: { type: "Point", coordinates: coord },
+          properties: { type: "handle", parentId: feature.id, index: idx },
+        }));
+      }
 
-      case "Point":
-        points = [coordinates];
-        break;
+      case "Point": {
+        return [
+          {
+            type: "Feature",
+            id: `${feature.id}-handle-0`,
+            geometry: { type: "Point", coordinates },
+            properties: { type: "handle", parentId: feature.id, index: 0 },
+          },
+        ];
+      }
 
       default:
         return [];
     }
-
-    return points.slice(0, -1).map((coord, idx) => ({
-      type: "Feature",
-      id: `${feature.id}-handle-${idx}`,
-      geometry: {
-        type: "Point",
-        coordinates: coord,
-      },
-      properties: {
-        type: "handle",
-        parentId: feature.id,
-        index: idx,
-      },
-    }));
   }
 
   static enableHandleDragging(map, onUpdateFeature) {
@@ -99,27 +125,71 @@ export class HandleDragging {
       const targetFeature = allFeatures.find((f) => f.id === parentId);
       if (!targetFeature) return;
 
-      let coords = [];
-
       switch (targetFeature.geometry.type) {
-        case "Polygon":
-          coords = [...targetFeature.geometry.coordinates[0]];
+        case "Polygon": {
+          const coords = [...targetFeature.geometry.coordinates[0]];
           coords[index] = latestCoord;
           coords[coords.length - 1] = coords[0]; // đóng vòng
           targetFeature.geometry.coordinates = [coords];
           break;
+        }
 
-        case "Image":
-          coords = [...targetFeature.geometry.coordinates];
+        case "Image": {
+          const coords = [...targetFeature.geometry.coordinates];
           coords[index] = latestCoord;
           targetFeature.geometry.coordinates = coords;
           break;
+        }
 
-        case "LineString":
-          coords = [...targetFeature.geometry.coordinates];
+        case "LineString": {
+          const coords = [...targetFeature.geometry.coordinates];
           coords[index] = latestCoord;
           targetFeature.geometry.coordinates = coords;
           break;
+        }
+
+        case "MultiLineString": {
+          const indexRaw = selectedHandle.properties.index;
+          let index = JSON.parse(indexRaw);
+
+          if (
+            !index ||
+            typeof index.lineIndex !== "number" ||
+            typeof index.pointIndex !== "number"
+          )
+            return;
+
+          const multiCoords = [...targetFeature.geometry.coordinates];
+          const lineCoords = [...multiCoords[index.lineIndex]];
+          const coordToUpdate = lineCoords[index.pointIndex];
+
+          // Cập nhật tọa độ cần sửa
+          lineCoords[index.pointIndex] = latestCoord;
+
+          // Cập nhật tất cả các tọa độ trùng khớp
+          for (let i = 0; i < multiCoords.length; i++) {
+            for (let j = 0; j < multiCoords[i].length; j++) {
+              if (
+                JSON.stringify(multiCoords[i][j]) ===
+                JSON.stringify(coordToUpdate)
+              ) {
+                multiCoords[i][j] = latestCoord;
+              }
+            }
+          }
+
+          // Cập nhật lại tọa độ trong targetFeature
+          multiCoords[index.lineIndex] = lineCoords;
+          targetFeature.geometry.coordinates = multiCoords;
+          break;
+        }
+
+        default:
+          console.warn(
+            "Unsupported geometry type:",
+            targetFeature.geometry.type
+          );
+          return;
       }
 
       onUpdateFeature(targetFeature);
@@ -151,7 +221,8 @@ export class HandleDragging {
         animationFrameId = null;
       }
 
-      // Cập nhật lần cuối và lưu
+      if (!currentFeature) return;
+
       const feature =
         currentFeature.geometry.type === "Image"
           ? ImageElement.convertPoligon(currentFeature)

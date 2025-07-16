@@ -11,6 +11,7 @@ import {
 import { RotateController } from "./rotateElement";
 import { Selection } from "./selection";
 import { AppGlobals } from "../globals";
+import { LayerOrdering } from "./layerOrdering";
 
 export class SelectedSelection {
   static findFeatureAtPoint(point, features) {
@@ -42,6 +43,21 @@ export class SelectedSelection {
           return distance < 10;
         }
 
+        // MultiLineString
+        if (geom.type === "MultiLineString") {
+          return geom.coordinates.some((line) => {
+            const lineFeature = turf.lineString(line);
+            const distance = turf.pointToLineDistance(
+              clickedPoint,
+              lineFeature,
+              {
+                units: "meters",
+              }
+            );
+            return distance < 10;
+          });
+        }
+
         // Point
         if (geom.type === "Point") {
           const dist = turf.distance(clickedPoint, feature, {
@@ -52,31 +68,6 @@ export class SelectedSelection {
 
         return false;
       });
-  }
-
-  static findSourceIdOfFeature(map, feature) {
-    const allSources = Object.keys(map.getStyle().sources).filter((s) =>
-      s.startsWith("source-")
-    );
-
-    if (feature.geometry.type === "Image") {
-      const sourceId = allSources.find((e) => e == `source-${feature.id}`);
-      return sourceId;
-    }
-
-    for (const sourceId of allSources) {
-      // chỉ xét GeoJSON source
-      const source = map.getSource(sourceId);
-      if (!source) continue;
-      const sourceData =
-        source._data?.features || source._options?.data?.features;
-      if (!sourceData?.length) continue;
-
-      const matched = sourceData.find((f) => f.id === feature.id);
-      if (matched) return sourceId;
-    }
-
-    return null;
   }
 
   static getSelectedElement({ map, setSelectedElement }) {
@@ -112,7 +103,7 @@ export class SelectedSelection {
       const feature = this.findFeatureAtPoint(clickedLngLat, storedData);
       if (!feature) return;
 
-      const sourceId = this.findSourceIdOfFeature(map, feature);
+      const sourceId = LayerOrdering.findFeatureSourceId(map, feature);
       if (!sourceId) return;
 
       setSelectedElement(feature); // set state app
@@ -123,6 +114,7 @@ export class SelectedSelection {
         case "Polygon":
         case "MultiPolygon":
         case "LineString":
+        case "MultiLineString":
           targetPolygon = feature;
           break;
 
@@ -144,19 +136,21 @@ export class SelectedSelection {
       }
 
       if (targetPolygon) {
+        if (!targetPolygon.geometry.type === "MultiLineString") {
+          RotateController.addHandle(map, targetPolygon);
+
+          RotateController.setup(map, feature, (rotated) => {
+            Selection.setSelectedData(map, rotated, sourceId); // cập nhật lại vào source
+          });
+        }
         BoundingBox.drawBoundingBox(targetPolygon, map, "selected");
         HandleDragging.newHandlesPoint(map, targetPolygon);
-        RotateController.addHandle(map, targetPolygon);
 
         requestAnimationFrame(() => {
           handleMoveElement(map, feature, sourceId);
         });
 
         HandleDragging.dragHandlesPoint(map, sourceId);
-
-        RotateController.setup(map, feature, (rotated) => {
-          Selection.setSelectedData(map, rotated, sourceId); // cập nhật lại vào source
-        });
       }
     });
   }

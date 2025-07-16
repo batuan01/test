@@ -1,24 +1,17 @@
-import styled from "styled-components";
-import {
-  calculateImageBounds,
-  loadFromLocalStorage,
-  saveToLocalStorage,
-  updateFeatureInLocalStorage,
-} from "../../core/utils";
 import { useContext, useEffect, useState } from "react";
-import { LoadData } from "../../core/actions/loadData";
-import { ImageElement } from "../../core/actions/image";
-import { selectedElement } from "../../core/actions/selectedElement";
+import styled from "styled-components";
 import { MapContext } from "../../contexts/mapContext";
-import { use } from "react";
-import { Selection } from "../../core/actions/selection";
+import { ImageElement } from "../../core/actions/image";
 import { LayerOrdering } from "../../core/actions/layerOrdering";
+import { Selection } from "../../core/actions/selection";
 import { AppGlobals } from "../../core/globals";
+import { updateFeatureInLocalStorage } from "../../core/utils";
 
 export const BasicComponent = ({ drawRef, mapRef }) => {
   const [color, setColor] = useState("#787878");
   const [height, setHeight] = useState("");
   const [label, setLabel] = useState("");
+  const [layer, setLayer] = useState("");
 
   const { selectedElement, setSelectedElement } = useContext(MapContext);
   const storedData = AppGlobals.getElements();
@@ -61,19 +54,10 @@ export const BasicComponent = ({ drawRef, mapRef }) => {
     updateFeatureProperty("label", label, mapRef);
   };
 
-  const handleUploadImage = async (e) => {
-    const file = e.target.files?.[0];
-    const map = mapRef.current;
-    if (!file || !map) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const imageDataUrl = reader.result;
-
-      ImageElement.add(map, imageDataUrl);
-    };
-
-    reader.readAsDataURL(file);
+  const handleChangeLayer = (e) => {
+    const newLayer = e.target.value;
+    setLayer(newLayer);
+    updateFeatureProperty("layer", newLayer, mapRef);
   };
 
   useEffect(() => {
@@ -82,11 +66,13 @@ export const BasicComponent = ({ drawRef, mapRef }) => {
       setColor("#787878");
       setHeight("");
       setLabel("");
+      setLayer("");
       return;
     }
-    setColor(element.properties.color);
-    setHeight(element.properties.height);
-    setLabel(element.properties.label);
+    setColor(element.properties?.color);
+    setHeight(element.properties?.height);
+    setLabel(element.properties?.label);
+    setLayer(element.properties?.layer);
   }, [selectedElement]);
 
   const logdata = () => {
@@ -150,21 +136,17 @@ export const BasicComponent = ({ drawRef, mapRef }) => {
       </FormGroup>
 
       <FormGroup>
-        <Label htmlFor="color">Color:</Label>
-        <ColorInput id="color" value={color} onChange={handleChangeColor} />
+        <Label htmlFor="color">Layer:</Label>
+        <StyledSelect value={layer} onChange={handleChangeLayer}>
+          <option value="">-- Chọn một tùy chọn --</option>
+          <option value="overview">Overview</option>
+          <option value="booth">Booth</option>
+        </StyledSelect>
       </FormGroup>
 
       <FormGroup>
-        <SubmitButton as="label" htmlFor="upload">
-          📷 Upload Image
-        </SubmitButton>
-        <input
-          id="upload"
-          type="file"
-          accept="image/*"
-          onChange={handleUploadImage}
-          style={{ display: "none" }}
-        />
+        <Label htmlFor="color">Color:</Label>
+        <ColorInput id="color" value={color} onChange={handleChangeColor} />
       </FormGroup>
     </Form>
   );
@@ -172,7 +154,6 @@ export const BasicComponent = ({ drawRef, mapRef }) => {
 
 const Form = styled.form`
   max-width: 400px;
-  margin: 2rem auto;
   padding: 1.5rem;
   background: #f9f9f9;
   border-radius: 8px;
@@ -195,7 +176,7 @@ const Label = styled.label`
 `;
 
 const Input = styled.input`
-  width: 100%;
+  width: calc(100% - 80px);
   padding: 0.6rem;
   font-size: 1rem;
   border: 1px solid #ccc;
@@ -248,5 +229,27 @@ const SubmitButton = styled.button`
   a {
     text-decoration: none;
     color: white;
+  }
+`;
+
+const StyledSelect = styled.select`
+  padding: 10px;
+  font-size: 16px;
+  border: 2px solid #3498db;
+  border-radius: 5px;
+  background-color: white;
+  color: #333;
+
+  width: calc(100% - 60px);
+  /* Hiệu ứng hover */
+  &:hover {
+    border-color: #2980b9;
+  }
+
+  /* Hiệu ứng focus */
+  &:focus {
+    outline: none;
+    border-color: #2980b9;
+    box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
   }
 `;

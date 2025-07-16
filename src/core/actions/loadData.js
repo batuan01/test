@@ -1,29 +1,36 @@
-import { generateUUID, loadFromLocalStorage } from "../utils";
-import booths from "../../data/boothsjson.json";
 import { AppGlobals } from "../globals";
+import { generateUUID, loadFromLocalStorage } from "../utils";
 
 export class LoadData {
   static splitFeatureGroups(features) {
     const result = [];
     let current = [];
 
-    for (const f of features) {
-      const isImage = f.geometry.type === "Image";
+    const allFeatures = features.sort(
+      (a, b) => a.properties.index - b.properties.index
+    );
 
-      if (isImage) {
+    for (const f of allFeatures) {
+      const isImage = f.geometry.type === "Image";
+      const isPath = f.properties.type === "Path";
+
+      if (isImage || isPath) {
+        // Nếu đang có nhóm đang gom thì push vào trước
         if (current.length) {
           result.push({
             type: "FeatureCollection",
             sourceType: current[0].geometry.type,
             features: current,
           });
+          current = [];
         }
+
+        // Thêm riêng Image hoặc Path vào kết quả
         result.push({
           type: "FeatureCollection",
-          sourceType: f.geometry.type,
+          sourceType: isImage ? "Image" : "Path",
           features: [f],
         });
-        current = [];
       } else if (
         !current.length ||
         current[0].geometry.type === f.geometry.type
@@ -121,7 +128,7 @@ export class LoadData {
           source: sourceId,
           paint: {
             "fill-color": ["coalesce", ["get", "color"], "#787878"],
-            "fill-opacity": 1, // màu nền trong suốt
+            "fill-opacity": 0.4, // màu nền trong suốt
           },
         },
         beforeLayerId
@@ -191,6 +198,28 @@ export class LoadData {
           source: sourceId,
           paint: {
             "line-color": ["coalesce", ["get", "color"], "#0066CC"],
+            "line-width": ["coalesce", ["get", "width"], 4],
+          },
+        },
+        beforeLayerId
+      );
+
+      return;
+    }
+
+    if (geometryType === "Path") {
+      map.addSource(sourceId, {
+        type: "geojson",
+        data: features,
+      });
+
+      map.addLayer(
+        {
+          id: layerId,
+          type: "line",
+          source: sourceId,
+          paint: {
+            "line-color": "#1c7ed6",
             "line-width": ["coalesce", ["get", "width"], 4],
           },
         },
