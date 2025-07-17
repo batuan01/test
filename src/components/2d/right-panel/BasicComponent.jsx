@@ -5,8 +5,9 @@ import { LayerActions } from "../../../core/actions/layerActions";
 import { Selection } from "../../../core/actions/selection";
 import { AppGlobals } from "../../../core/globals";
 import { updateFeatureInLocalStorage } from "../../../core/utils";
+import { ExportMapToPDF } from "./ExportMapToPDF";
 
-export const BasicComponent = ({ drawRef, mapRef }) => {
+export const BasicComponent = ({ mapRef, mapContainer }) => {
   const [color, setColor] = useState("#787878");
   const [height, setHeight] = useState("");
   const [label, setLabel] = useState("");
@@ -106,6 +107,8 @@ export const BasicComponent = ({ drawRef, mapRef }) => {
       >
         LogData
       </SubmitButton>
+
+      <ExportMapToPDF mapContainer={mapContainer} mapRef={mapRef} />
 
       <FormGroup>
         <Label htmlFor="label">Label:</Label>

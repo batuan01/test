@@ -84,7 +84,7 @@ const DrawGeometries = () => {
       <ButtonShow onClick={() => setHide(!hide)}>Show</ButtonShow>
       {!hide && (
         <FormProperty>
-          <BasicComponent drawRef={drawRef} mapRef={mapRef} />
+          <BasicComponent mapRef={mapRef} mapContainer={mapContainer} />
         </FormProperty>
       )}
 

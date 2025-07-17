@@ -169,7 +169,7 @@ export function dragElement(map, feature, onUpdate) {
       BoundingBox.drawBoundingBox(feature, map, "selected");
       AppGlobals.setDataToStore(currentFeature);
       HandleDragging.newHandlesPoint(map, currentFeature);
-      RotateController.addHandle(map);
+      RotateController.addHandle(map, currentFeature);
 
       isMove = false;
     }

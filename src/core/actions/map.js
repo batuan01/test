@@ -26,5 +26,7 @@ export const createMap = ({
     bearing: bearing ?? 0, // Không xoay hướng bản đồ
   });
 
+  map.getCanvas().crossOrigin = "anonymous";
+
   return map;
 };
