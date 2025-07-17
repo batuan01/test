@@ -92,6 +92,14 @@ export class RotateController {
     const point = [e.lngLat.lng, e.lngLat.lat];
     const pt = turf.point(point);
 
+    if (this.map.getLayer("rotate-handle-layer")) {
+      const featuresHandles = this.map.queryRenderedFeatures(e.point, {
+        layers: ["rotate-handle-layer"],
+      });
+
+      if (featuresHandles.length === 0) return;
+    }
+
     const isOnHandle = turf.booleanPointInPolygon(
       pt,
       turf.buffer(this.handle, 0.0002, { units: "degrees" })

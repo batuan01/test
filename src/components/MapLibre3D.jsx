@@ -12,6 +12,7 @@ import { createMap } from "../core/actions/map";
 import { loadFromLocalStorage, ZOOM_OVERVIEW } from "../core/utils";
 import { PropertiesComponent } from "./3d/left-panel/PropertiesComponent";
 import CustomToolbar from "./bottom-panel/CustomToolbar";
+import { ExportMapToPDF } from "./2d/right-panel/ExportMapToPDF";
 
 // const booths = require("../data/booths.geojson");
 
@@ -85,6 +86,7 @@ const MapLibre3D = () => {
         <button type="button" onClick={logdata}>
           Save
         </button>
+        <ExportMapToPDF mapContainer={mapContainer} mapRef={mapRef} />
       </FormProperty>
 
       <PropertiesComponent mapRef={mapRef} />
@@ -104,6 +106,9 @@ const FormProperty = styled.div`
   padding: 15px;
   width: 300px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 `;
 
 const SubmitButton = styled.button`
