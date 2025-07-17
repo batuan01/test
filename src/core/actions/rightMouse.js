@@ -6,6 +6,7 @@ import {
 import { SplitPath } from "./element/splitPath";
 import { isPathElement } from "./element/typeChecks";
 import { HandleDragging } from "./handlesPoint";
+import { LayerActions } from "./layerActions";
 import { LayerOrdering } from "./layerOrdering";
 import { SelectedSelection } from "./selectedElement";
 import { Selection } from "./selection";
@@ -24,7 +25,7 @@ export class ContextMenuOption {
 
       if (!feature) return;
 
-      const currentSourceId = LayerOrdering.findFeatureSourceId(map, feature);
+      const currentSourceId = LayerActions.findFeatureSourceId(map, feature);
 
       this.showContextMenu(
         e.point,

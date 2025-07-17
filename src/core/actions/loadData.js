@@ -1,5 +1,6 @@
 import { AppGlobals } from "../globals";
 import { generateUUID, loadFromLocalStorage } from "../utils";
+import { isImageElement, isPathElement } from "./element/typeChecks";
 
 export class LoadData {
   static splitFeatureGroups(features) {
@@ -11,8 +12,8 @@ export class LoadData {
     );
 
     for (const f of allFeatures) {
-      const isImage = f.geometry.type === "Image";
-      const isPath = f.properties.type === "Path";
+      const isImage = isImageElement(f);
+      const isPath = isPathElement(f);
 
       if (isImage || isPath) {
         // Nếu đang có nhóm đang gom thì push vào trước

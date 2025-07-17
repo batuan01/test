@@ -1,5 +1,9 @@
 import * as turf from "@turf/turf";
 import { ZOOM_OVERVIEW } from "../utils";
+import {
+  isImageElement,
+  isPolygonElement,
+} from "../actions/element/typeChecks";
 
 export class ConvertData {
   static filerZoomLayers(map, data) {
@@ -28,12 +32,12 @@ export class ConvertData {
   static filterPolygonElements(data) {
     if (!data.length) return [];
 
-    return data.filter((f) => f.geometry?.type === "Polygon");
+    return data.filter((f) => isPolygonElement(f));
   }
 
   static filterImageElements(data) {
     if (!data.length) return [];
-    return data.filter((f) => f.geometry?.type === "Image");
+    return data.filter((f) => isImageElement(f));
   }
 
   static convertLabel(polygonFeatures) {

@@ -1,4 +1,4 @@
-import { AppGlobals } from "../globals";
+import { isImageElement } from "./element/typeChecks";
 import { HandleDragging } from "./handlesPoint";
 
 export class Selection {
@@ -16,7 +16,7 @@ export class Selection {
     if (!source) return;
 
     // Nếu là ảnh raster (image)
-    if (data.geometry?.type === "Image") {
+    if (isImageElement(data)) {
       const coordinates = data.geometry?.coordinates;
 
       // Chỉ cập nhật nếu source là type: 'image'

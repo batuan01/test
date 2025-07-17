@@ -1,8 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import styled from "styled-components";
 import { MapContext } from "../../../contexts/mapContext";
-import { ImageElement } from "../../../core/actions/image";
-import { LayerOrdering } from "../../../core/actions/layerOrdering";
+import { LayerActions } from "../../../core/actions/layerActions";
 import { Selection } from "../../../core/actions/selection";
 import { AppGlobals } from "../../../core/globals";
 import { updateFeatureInLocalStorage } from "../../../core/utils";
@@ -30,7 +29,7 @@ export const BasicComponent = ({ drawRef, mapRef }) => {
       },
     };
 
-    const sourceId = LayerOrdering.findFeatureSourceId(map, element);
+    const sourceId = LayerActions.findFeatureSourceId(map, element);
 
     // Update map source using Selection class
     Selection.setSelectedData(map, updated, sourceId);

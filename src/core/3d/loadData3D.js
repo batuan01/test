@@ -1,3 +1,4 @@
+import { LayerActions } from "../actions/layerActions";
 import { LoadData } from "../actions/loadData";
 import { AppGlobals } from "../globals";
 import { ZOOM_OVERVIEW } from "../utils";
@@ -46,7 +47,7 @@ export class LoadData3D {
     console.log("groupsToRemove", groupsToRemove);
     groupsToRemove.forEach((group) => {
       const id = group.features[0].id;
-      this.removeSourceAndLayer(map, `source-${id}`, `layer-${id}`);
+      LayerActions.remove(map, `source-${id}`, `layer-${id}`);
     });
   }
 
@@ -91,15 +92,6 @@ export class LoadData3D {
         type: "FeatureCollection",
         features,
       });
-    }
-  }
-
-  static removeSourceAndLayer(map, sourceId, layerId) {
-    if (map.getLayer(layerId)) {
-      map.removeLayer(layerId);
-    }
-    if (map.getSource(sourceId)) {
-      map.removeSource(sourceId);
     }
   }
 }

@@ -1,9 +1,6 @@
 import {
   lineIntersect,
-  lineString,
-  point,
-  lineSplit,
-  featureCollection,
+  lineString
 } from "@turf/turf";
 
 export class SplitPath {

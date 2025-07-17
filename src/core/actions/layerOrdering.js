@@ -1,5 +1,7 @@
 import { AppGlobals } from "../globals";
 import { generateUUID } from "../utils";
+import { isImageElement } from "./element/typeChecks";
+import { LayerActions } from "./layerActions";
 import { LoadData } from "./loadData";
 
 export class LayerOrdering {
@@ -39,7 +41,7 @@ export class LayerOrdering {
     // Nếu source cũ không còn feature nào → xóa
     if (newFrom.length === 0) {
       for (const layer of currentLayerId) {
-        if (map.getLayer(layer)) map.removeLayer(layer);
+        LayerActions.removeLayer(map, layer);
       }
 
       if (map.getSource(fromSourceId)) map.removeSource(fromSourceId);
@@ -47,8 +49,8 @@ export class LayerOrdering {
   }
 
   static moveLayer = (map, feature, direction) => {
-    const currentSourceId = this.findFeatureSourceId(map, feature);
-    const currentLayerId = this.findFeatureLayerId(map, feature);
+    const currentSourceId = LayerActions.findFeatureSourceId(map, feature);
+    const currentLayerId = LayerActions.findFeatureLayerId(map, feature);
 
     if (!currentSourceId || !currentLayerId.length) return;
 
@@ -79,8 +81,14 @@ export class LayerOrdering {
       reordered[index] = reordered[newIndex];
       reordered[newIndex] = temp;
 
-      const fromFeature = this.findFeatureLayerId(map, reordered[index]);
-      const toFeature = this.findFeatureLayerId(map, reordered[newIndex]);
+      const fromFeature = LayerActions.findFeatureLayerId(
+        map,
+        reordered[index]
+      );
+      const toFeature = LayerActions.findFeatureLayerId(
+        map,
+        reordered[newIndex]
+      );
 
       if (map.getLayer(fromFeature[1]) && map.getLayer(toFeature[1])) {
         if (direction === "forward") {
@@ -103,7 +111,10 @@ export class LayerOrdering {
     }
 
     const relativeFeature = AppGlobals.getAdjacentFeature(feature, direction);
-    const relativeSourceId = this.findFeatureSourceId(map, relativeFeature);
+    const relativeSourceId = LayerActions.findFeatureSourceId(
+      map,
+      relativeFeature
+    );
     const newFeature = (feature, index) => {
       return {
         ...feature,
@@ -125,12 +136,12 @@ export class LayerOrdering {
     const newIndexIncrease = AppGlobals.getMaxIndex() + 1;
     const newId = generateUUID();
 
-    if (relativeFeature.geometry.type === "Image") {
+    if (isImageElement(relativeFeature)) {
       const aboveFeature = AppGlobals.getAdjacentFeature(
         relativeFeature,
         direction
       );
-      const aboveSourceId = this.findFeatureSourceId(map, aboveFeature);
+      const aboveSourceId = LayerActions.findFeatureSourceId(map, aboveFeature);
 
       const beforeLayerId =
         direction === "forward"
@@ -151,7 +162,7 @@ export class LayerOrdering {
         AppGlobals.updateDataStoreByIds(relativeFeature.id, feature.id);
       } else {
         if (relativeFeature.properties.index === AppGlobals.getMaxIndex()) {
-          if (feature.geometry.type === "Image") {
+          if (isImageElement(feature)) {
             this.removeLayer(map, feature.id);
           }
 
@@ -165,7 +176,7 @@ export class LayerOrdering {
           AppGlobals.removeDataById(feature.id);
           AppGlobals.setDataToStore(newFeature(feature, newIndexIncrease));
         } else {
-          if (feature.geometry.type === "Image") {
+          if (isImageElement(feature)) {
             this.removeLayer(map, feature.id);
           }
 
@@ -191,7 +202,10 @@ export class LayerOrdering {
         newFeature.geometry.type === relativeFeature.geometry.type;
 
       if (isSameType) {
-        const targetSourceId = this.findFeatureSourceId(map, newFeature);
+        const targetSourceId = LayerActions.findFeatureSourceId(
+          map,
+          newFeature
+        );
         const source = map.getSource(targetSourceId);
         const data = source._data || source._options?.data;
         const features = data?.features || [];
@@ -207,14 +221,14 @@ export class LayerOrdering {
           features: reordered,
         });
       } else {
-        if (relativeFeature.geometry.type === "Image") {
+        if (isImageElement(relativeFeature)) {
           this.removeLayer(map, relativeFeature.id);
         }
 
         const layerId = isForward
           ? currentLayerId[0]
           : newFeature
-          ? this.findFeatureLayerId(map, newFeature)?.[0]
+          ? LayerActions.findFeatureLayerId(map, newFeature)?.[0]
           : "";
 
         LoadData.AddFeature(
@@ -231,63 +245,18 @@ export class LayerOrdering {
     }
   };
 
-  static findFeatureSourceId(map, feature) {
-    if (!feature || !map || map.getStyle().sources.length === 0) return null;
-    const allSources = Object.keys(map.getStyle().sources).filter((s) =>
-      s.startsWith("source-")
-    );
-    const sourceId = allSources.find((sourceId) => {
-      const source = map.getSource(sourceId);
-      if (source.type === "image") {
-        const id = source.id.replace("source-", "");
-        return feature.id === id;
-      }
-      const data = source?._data || source?._options?.data || source?.data;
-      return data?.features?.some((f) => f.id === feature.id);
-    });
-
-    return sourceId ?? "";
-  }
-
-  static findFeatureLayerId(map, feature) {
-    const layers = map
-      .getStyle()
-      .layers.filter(
-        (l) => l.id.startsWith("layer-") || l.id.startsWith("layer-outline-")
-      );
-
-    const currentSourceId = this.findFeatureSourceId(map, feature);
-    const id = currentSourceId.replace("source-", "");
-
-    let layerIds = [];
-    for (const layer of layers) {
-      let idLayer = layer.id;
-      if (idLayer.startsWith("layer-outline-")) {
-        idLayer = idLayer.replace("layer-outline-", "");
-      } else if (idLayer.startsWith("layer-")) {
-        idLayer = idLayer.replace("layer-", "");
-      }
-
-      if (idLayer === id && !layerIds.includes(layer.id)) {
-        layerIds.push(layer.id);
-      }
-    }
-
-    return layerIds;
-  }
-
   static removeLayer(map, layerId) {
     const currentLayerId = [`layer-${layerId}`, `layer-outline-${layerId}`];
     const currentSourceId = `source-${layerId}`;
 
     for (const layer of currentLayerId) {
-      if (map.getLayer(layer)) map.removeLayer(layer);
+      LayerActions.removeLayer(map, layer);
     }
-    if (map.getSource(currentSourceId)) map.removeSource(currentSourceId);
+    LayerActions.removeSource(map, currentSourceId);
   }
 
   static updateDataAftermove(map, feature, currentSourceId) {
-    if (feature.geometry.type !== "Image") {
+    if (!isImageElement(feature)) {
       const fromSource = map.getSource(currentSourceId);
       if (!fromSource) return;
       const fromData = fromSource._data || fromSource._options?.data;

@@ -1,11 +1,8 @@
 import { AppGlobals } from "../globals";
-import {
-  loadFromLocalStorage,
-  saveToLocalStorage,
-  updateFeatureInLocalStorage,
-} from "../utils";
 import { BoundingBox } from "./boundingBox";
+import { isImageElement } from "./element/typeChecks";
 import { ImageElement } from "./image";
+import { LayerActions } from "./layerActions";
 import { Selection } from "./selection";
 
 export class HandleDragging {
@@ -223,10 +220,9 @@ export class HandleDragging {
 
       if (!currentFeature) return;
 
-      const feature =
-        currentFeature.geometry.type === "Image"
-          ? ImageElement.convertPoligon(currentFeature)
-          : currentFeature;
+      const feature = isImageElement(currentFeature)
+        ? ImageElement.convertPoligon(currentFeature)
+        : currentFeature;
 
       update();
       AppGlobals.setDataToStore(currentFeature); // ✅ lưu polygon mới nhất()
@@ -271,16 +267,13 @@ export class HandleDragging {
   static removeHandlesPoint = (map) => {
     const sourceId = "handles-source";
     const layerId = "handles-layer";
-    if (map.getLayer(layerId)) {
-      map.removeLayer(layerId);
-    }
-    if (map.getSource(sourceId)) {
-      map.removeSource(sourceId);
-    }
+
+    LayerActions.remove(map, sourceId, layerId);
   };
 
-  static dragHandlesPoint = (map, sourceId) => {
+  static dragHandlesPoint = (map) => {
     this.enableHandleDragging(map, (updatedFeature) => {
+      const sourceId = LayerActions.findFeatureSourceId(map, updatedFeature);
       // Cập nhật lại feature trong localStorage
       Selection.setSelectedData(map, updatedFeature, sourceId);
 

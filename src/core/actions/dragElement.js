@@ -5,6 +5,7 @@ import { HandleDragging } from "./handlesPoint";
 import { ImageElement } from "./image";
 import { RotateController } from "./rotateElement";
 import { Selection } from "./selection";
+import { isImageElement, isLineElement } from "./element/typeChecks";
 
 /**
  * Kéo polygon theo con trỏ – mượt 60 fps
@@ -37,12 +38,13 @@ export function dragElement(map, feature, onUpdate) {
     );
     if (!original) return feature;
 
-    const geomType = currentFeature.geometry.type;
     let coords = original.geometry.coordinates;
 
     // Đảm bảo coords luôn là mảng 2 chiều
     const normalizedCoords =
-      geomType === "Image" || geomType === "LineString" ? [coords] : coords;
+      isLineElement(currentFeature) || isImageElement(currentFeature)
+        ? [coords]
+        : coords;
 
     const movedCoords = normalizedCoords.map((ring) =>
       ring.map(([lng, lat]) => [lng + dx, lat + dy])
@@ -53,7 +55,7 @@ export function dragElement(map, feature, onUpdate) {
       geometry: {
         ...feature.geometry,
         coordinates:
-          geomType === "Image" || geomType === "LineString"
+          isLineElement(currentFeature) || isImageElement(currentFeature)
             ? movedCoords[0]
             : movedCoords,
       },
@@ -76,6 +78,14 @@ export function dragElement(map, feature, onUpdate) {
   const onMouseDown = (e) => {
     const point = turf.point([e.lngLat.lng, e.lngLat.lat]);
     const geomType = currentFeature.geometry.type;
+
+    if (map.getLayer("handles-layer")) {
+      const featuresHandles = map.queryRenderedFeatures(e.point, {
+        layers: ["handles-layer"],
+      });
+
+      if (featuresHandles.length) return;
+    }
 
     let isInside = false;
 
@@ -101,15 +111,6 @@ export function dragElement(map, feature, onUpdate) {
       }
 
       case "Image": {
-        // const coords = [...currentFeature.geometry.coordinates];
-        // coords.push(coords[0]); // đóng vòng
-        // const polygon = {
-        //   type: "Feature",
-        //   geometry: {
-        //     type: "Polygon",
-        //     coordinates: [coords],
-        //   },
-        // };
         const polygon = ImageElement.convertPoligon(feature);
         isInside = turf.booleanPointInPolygon(point, polygon);
         break;
@@ -161,10 +162,9 @@ export function dragElement(map, feature, onUpdate) {
 
     if (isMove) {
       // ---------------- Lưu kết quả ----------------
-      const feature =
-        currentFeature.geometry.type === "Image"
-          ? ImageElement.convertPoligon(currentFeature)
-          : currentFeature;
+      const feature = isImageElement(currentFeature)
+        ? ImageElement.convertPoligon(currentFeature)
+        : currentFeature;
 
       BoundingBox.drawBoundingBox(feature, map, "selected");
       AppGlobals.setDataToStore(currentFeature);

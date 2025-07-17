@@ -1,9 +1,8 @@
 import * as turf from "@turf/turf";
-import { loadFromLocalStorage } from "../utils";
-import { ImageElement } from "./image";
 import { AppGlobals } from "../globals";
+import { isImageElement, isPathElement } from "./element/typeChecks";
+import { ImageElement } from "./image";
 import { SelectedSelection } from "./selectedElement";
-import { isPathElement } from "./element/typeChecks";
 
 export class BoundingBox {
   static drawBoundingBox = (feature, map, layerType = "hover") => {
@@ -51,19 +50,6 @@ export class BoundingBox {
     }
   };
 
-  static removeBBoxSelected = (map) => {
-    const sources = ["bbox-selected", "bbox-hover"];
-    const layers = ["bbox-selected-line", "bbox-hover-line"];
-
-    layers.forEach((id) => {
-      if (map.getLayer(id)) map.removeLayer(id);
-    });
-
-    sources.forEach((id) => {
-      if (map.getSource(id)) map.removeSource(id);
-    });
-  };
-
   static hoverBBoxSelected = (selectedElement, map) => {
     if (!map) return;
 
@@ -85,10 +71,9 @@ export class BoundingBox {
       if (isPathElement(hoveredPolygon)) return;
 
       if (hoveredPolygon) {
-        const polygonFeature =
-          hoveredPolygon.geometry.type === "Image"
-            ? ImageElement.convertPoligon(hoveredPolygon)
-            : hoveredPolygon;
+        const polygonFeature = isImageElement(hoveredPolygon)
+          ? ImageElement.convertPoligon(hoveredPolygon)
+          : hoveredPolygon;
         this.drawBoundingBox(polygonFeature, map, "hover");
       } else {
         this.clearBoundingBox(map, "hover");

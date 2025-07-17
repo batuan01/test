@@ -1,17 +1,14 @@
 import * as turf from "@turf/turf";
-import { loadFromLocalStorage, saveToLocalStorage } from "../utils";
+import { AppGlobals } from "../globals";
 import { BoundingBox } from "./boundingBox";
+import { handleMoveElement } from "./dragElement";
+import { HandleDragging } from "./handlesPoint";
 import { ImageElement } from "./image";
-import { dragElement, handleMoveElement } from "./dragElement";
-import {
-  enableHandleDragging,
-  getCornerHandles,
-  HandleDragging,
-} from "./handlesPoint";
+import { LayerActions } from "./layerActions";
+import { RemovePoint } from "./removePoint";
 import { RotateController } from "./rotateElement";
 import { Selection } from "./selection";
-import { AppGlobals } from "../globals";
-import { LayerOrdering } from "./layerOrdering";
+import { isImageElement, isPolygonElement } from "./element/typeChecks";
 
 export class SelectedSelection {
   static findFeatureAtPoint(point, features) {
@@ -29,7 +26,7 @@ export class SelectedSelection {
         }
 
         // Custom type "Image" dạng Polygon
-        if (geom.type === "Image" && feature.properties?.type === "image") {
+        if (isImageElement(feature)) {
           const imagePoly = ImageElement.convertPoligon(feature);
           return turf.booleanPointInPolygon(clickedPoint, imagePoly);
         }
@@ -88,6 +85,18 @@ export class SelectedSelection {
         RotateController.destroy(map);
         map.dragPan.enable();
       }
+
+      // selecect point handle
+      if (!map.getLayer("handles-layer")) return;
+      const featuresHandles = map.queryRenderedFeatures(e.point, {
+        layers: ["handles-layer"],
+      });
+
+      if (featuresHandles.length) {
+        RemovePoint.setRemovePoint(map, e);
+      } else {
+        RemovePoint.resetRemovePoint();
+      }
     });
   }
 
@@ -103,7 +112,7 @@ export class SelectedSelection {
       const feature = this.findFeatureAtPoint(clickedLngLat, storedData);
       if (!feature) return;
 
-      const sourceId = LayerOrdering.findFeatureSourceId(map, feature);
+      const sourceId = LayerActions.findFeatureSourceId(map, feature);
       if (!sourceId) return;
 
       setSelectedElement(feature); // set state app
@@ -119,14 +128,14 @@ export class SelectedSelection {
           break;
 
         case "Image":
-          if (feature.properties?.type === "image") {
+          if (isImageElement(feature)) {
             targetPolygon = ImageElement.convertPoligon(feature);
           }
           break;
 
         case "Point":
           const buffer = turf.buffer(feature, 0.0001, { units: "degrees" });
-          if (buffer.geometry.type === "Polygon") {
+          if (isPolygonElement(buffer)) {
             targetPolygon = buffer;
           }
           break;
@@ -154,7 +163,7 @@ export class SelectedSelection {
           handleMoveElement(map, feature, sourceId);
         });
 
-        HandleDragging.dragHandlesPoint(map, sourceId);
+        HandleDragging.dragHandlesPoint(map);
       }
     });
   }

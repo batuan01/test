@@ -7,9 +7,9 @@ import {
   saveToLocalStorage,
   updateFeatureInLocalStorage,
 } from "../utils";
-import { LoadData } from "./loadData";
 import { DistanceElement } from "./element/distanceElement";
 import { isPathElement } from "./element/typeChecks";
+import { LoadData } from "./loadData";
 
 export class DrawElement {
   static Terradraw = (map, drawRef, isPathRef) => {

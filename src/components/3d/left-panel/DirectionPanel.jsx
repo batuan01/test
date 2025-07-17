@@ -6,6 +6,7 @@ import PathFinder from "geojson-path-finder";
 import * as turf from "@turf/turf";
 import { RouteLayer } from "../../../core/3d/routeLayer";
 import { ConvertData } from "../../../core/3d/convertData";
+import { LayerActions } from "../../../core/actions/layerActions";
 
 export const DirectionPanel = ({
   mapRef,
@@ -17,7 +18,7 @@ export const DirectionPanel = ({
 
   const handleBack = () => {
     setMode("properties");
-    RouteLayer.remove(mapRef.current);
+    LayerActions.remove(mapRef.current, "route", "route-layer");
   };
 
   useEffect(() => {

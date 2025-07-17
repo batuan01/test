@@ -2,11 +2,8 @@ import { AppGlobals } from "../globals";
 import {
   calculateImageBoundsWithAspect,
   generateUUID,
-  loadFromLocalStorage,
-  newDataToLocalStorage,
-  saveToLocalStorage,
+  newDataToLocalStorage
 } from "../utils";
-import { DrawElement } from "./draw";
 import { LoadData } from "./loadData";
 
 export class ImageElement {
@@ -33,7 +30,7 @@ export class ImageElement {
               coordinates: bounds,
             },
             properties: {
-              type: "image",
+              type: "Image",
               id: imageId,
               index: newIndex,
               imageUrl: imageDataUrl,

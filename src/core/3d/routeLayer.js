@@ -39,13 +39,4 @@ export class RouteLayer {
       });
     }
   }
-
-  static remove(map) {
-    if (map.getLayer("route-layer")) {
-      map.removeLayer("route-layer");
-    }
-    if (map.getSource("route")) {
-      map.removeSource("route");
-    }
-  }
 }
