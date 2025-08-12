@@ -1,6 +1,6 @@
 export const LOCAL_STORAGE_KEY = "draw-data";
 export const ZOOM_OVERVIEW = 17;
-export const DEFAULT_COORDINATES = [139.7977668232757, 35.63168006521393];
+export const DEFAULT_COORDINATES = [105.86528080167646, 21.087533464235964];
 
 export const saveToLocalStorage = (geojson) => {
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(geojson));
